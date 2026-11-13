@@ -1,8 +1,23 @@
 apply plugin: 'com.android.application'
 
-def keystorePropertiesFile = rootProject.file("keystore.secrets");
+def keystorePropertiesFile = rootProject.file("keystore.secrets")
 def keystoreProperties = new Properties()
-keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+def signingPropertyNames = ["keyAlias", "keyPassword", "storeFile", "storePassword"]
+
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.withInputStream { stream ->
+        keystoreProperties.load(stream)
+    }
+}
+
+def hasReleaseSigning = keystorePropertiesFile.exists() &&
+        signingPropertyNames.every { keystoreProperties[it] }
+
+if (project.hasProperty("requireReleaseSigning") && !hasReleaseSigning) {
+    throw new GradleException(
+            "A complete keystore.secrets is required with -PrequireReleaseSigning"
+    )
+}
 
 ext {
     supportLibraryVersion = '27.1.1'
@@ -92,14 +107,16 @@ configurations {
 android {
     useLibrary 'org.apache.http.legacy'
 
-//    signingConfigs {
-//        config {
-//            keyAlias keystoreProperties['keyAlias']
-//            keyPassword keystoreProperties['keyPassword']
-//            storeFile file(keystoreProperties['storeFile'])
-//            storePassword keystoreProperties['storePassword']
-//        }
-//    }
+    signingConfigs {
+        if (hasReleaseSigning) {
+            release {
+                keyAlias keystoreProperties["keyAlias"]
+                keyPassword keystoreProperties["keyPassword"]
+                storeFile rootProject.file(keystoreProperties["storeFile"])
+                storePassword keystoreProperties["storePassword"]
+            }
+        }
+    }
 
     compileSdkVersion 27
     buildToolsVersion '27.0.3'
@@ -125,11 +142,12 @@ android {
     buildTypes {
         debug {
             minifyEnabled false
-//            signingConfig signingConfigs.config
         }
         release {
             minifyEnabled false
-//            signingConfig signingConfigs.config
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 
