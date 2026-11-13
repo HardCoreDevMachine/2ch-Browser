@@ -7,7 +7,6 @@ import org.codehaus.jackson.map.ObjectMapper;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 
 import okhttp3.Response;
@@ -48,15 +47,9 @@ public class ApiReaderImpl implements ApiReader {
         JsonNode result = mMapper.readValue(responseBody.string(), JsonNode.class);
         response.close();
 
-        Iterator iterator = result.getElements();
+        MakabaBoardInfo[] data = mMapper.convertValue(result, MakabaBoardInfo[].class);
 
-        while (iterator.hasNext()) {
-            JsonNode node = (JsonNode) iterator.next();
-
-            MakabaBoardInfo[] data = mMapper.convertValue(node, MakabaBoardInfo[].class);
-
-            models.addAll(Arrays.asList(MakabaModelsMapper.mapBoardModels(data)));
-        }
+        models.addAll(Arrays.asList(MakabaModelsMapper.mapBoardModels(data)));
         return models;
     }
 

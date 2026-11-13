@@ -108,17 +108,17 @@ public class MakabaModelsMapper {
     private static BoardModel mapBoardModel(MakabaBoardInfo source) {
         BoardModel model = new BoardModel();
 
-        model.setBumpLimit(Integer.parseInt(source.bump_limit));
+        model.setBumpLimit(source.bump_limit);
         model.setCategory(source.category);
         model.setUserDefaultName(source.default_name);
-        model.setEnableLikes(source.enable_likes == 1);
-        model.setEnablePosting(source.enable_posting == 1);
-        model.setThreadTags(source.enable_thread_tags == 1);
+        model.setEnableLikes(source.enable_likes);
+        model.setEnablePosting(source.enable_posting);
+        model.setThreadTags(source.enable_thread_tags);
         model.setId(source.id);
         model.setBoardName(source.name);
-        model.setPagesCount(source.pages);
-        model.setSage(source.sage == 1);
-        model.setTripcodes(source.tripcodes == 1);
+        model.setPagesCount(source.max_pages > 0 ? source.max_pages : source.pages);
+        model.setSage(source.enable_sage || source.sage == 1);
+        model.setTripcodes(source.enable_trips || source.tripcodes == 1);
 
         model.setIcons(mapBoardIconModels(source.icons));
 
@@ -126,6 +126,10 @@ public class MakabaModelsMapper {
     }
 
     private static BoardIconModel[] mapBoardIconModels(MakabaIconInfo[] icons) {
+
+        if (icons == null) {
+            return new BoardIconModel[0];
+        }
 
         BoardIconModel[] result = new BoardIconModel[icons.length];
 

@@ -19,8 +19,8 @@ public class MakabaUrlBuilder implements IUrlBuilder {
         MainApplication.getAppComponent().inject(this);
     }
 
-    public String getBoardsUrl(){
-        return this.createRootUri("makaba/mobile.fcgi?task=get_boards").toString();
+    public String getBoardsUrl() {
+        return this.createRootUri("api/mobile/v2/boards").toString();
     }
 
     public String getPageUrlApi(String board, int pageNumber) {
