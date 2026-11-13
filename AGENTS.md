@@ -24,6 +24,10 @@ This project uses `bd` (Beads) as the source of truth for work tracking.
 
 Do not create Beads for trivial one-command changes. Do not close a Bead merely because code was written; close it when its acceptance criteria are met.
 
+## API specification
+
+`api.yml` is the source of truth for the current API. When API behavior, contracts, or documentation conflict, follow `api.yml`.
+
 ## Release versions and tags
 
 Before committing a release-impacting change, inspect `versionCode` and `versionName` in `app/build.gradle` and the existing Git tags.
