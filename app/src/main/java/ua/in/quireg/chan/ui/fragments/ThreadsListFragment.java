@@ -34,6 +34,7 @@ import android.widget.EdgeEffect;
 import com.arellomobile.mvp.MvpAppCompatFragment;
 import com.arellomobile.mvp.presenter.InjectPresenter;
 import com.arellomobile.mvp.presenter.PresenterType;
+import com.arellomobile.mvp.presenter.ProvidePresenter;
 import com.aspsine.swipetoloadlayout.OnRefreshListener;
 import com.aspsine.swipetoloadlayout.SwipeToLoadLayout;
 
@@ -69,8 +70,15 @@ import ua.in.quireg.chan.ui.views.RecyclerViewWithCM;
 public class ThreadsListFragment extends MvpAppCompatFragment
         implements ThreadsListView, OnRefreshListener {
 
-    @InjectPresenter(type = PresenterType.WEAK)
+    @InjectPresenter(type = PresenterType.WEAK, tag = "mThreadsListPresenter")
     ThreadsListPresenter mThreadsListPresenter;
+
+    @ProvidePresenter(tag = "mThreadsListPresenter", type = PresenterType.WEAK)
+    ThreadsListPresenter provideThreadsListPresenter() {
+        return new ThreadsListPresenter(
+                getArguments().getString(Constants.EXTRA_BOARD_NAME),
+                getArguments().getInt(Constants.EXTRA_BOARD_PAGE, 0));
+    }
 
     @Inject ApplicationSettings mSettings;
     @Inject FavoritesDataSource mFavoritesDatasource;

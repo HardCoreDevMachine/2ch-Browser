@@ -123,7 +123,8 @@ public class BoardsListInteractor {
             return board.isFavorite;
         }
 
-        return mApplicationSettings.isDisplayAllBoards() || board.isFavorite;
+        return mApplicationSettings.isDisplayAllBoards() ||
+                mApplicationSettings.getAllowedBoardsIds().contains(board.id) || board.isFavorite;
     }
 
 }
