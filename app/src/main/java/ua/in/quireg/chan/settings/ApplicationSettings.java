@@ -13,7 +13,6 @@ import org.apache.http.impl.cookie.BasicClientCookie;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import timber.log.Timber;
@@ -360,10 +359,6 @@ public class ApplicationSettings {
         return CaptchaType.DVACH;
     }
 
-
-    public List<String> getAllowedBoardsIds() {
-        return Arrays.asList(mResources.getStringArray(R.array.allowed_boards));
-    }
 
     public boolean isSwipeToRefresh() {
         return mSharedPrefs.getBoolean(mResources.getString(R.string.pref_swipe_to_refresh_key), true);

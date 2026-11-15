@@ -24,6 +24,8 @@ import ua.in.quireg.chan.settings.ApplicationSettings;
 
 public class BoardsListInteractor {
 
+    private static final String USER_BOARDS_CATEGORY = "Пользовательские";
+
     @Inject BoardsRepository mBoardsRepository;
     @Inject FavoritesDataSource mFavoritesDataSource;
     @Inject protected ApplicationSettings mApplicationSettings;
@@ -117,8 +119,11 @@ public class BoardsListInteractor {
     }
 
     private boolean isBoardVisible(BoardEntity board) {
-        return mApplicationSettings.isDisplayAllBoards() ||
-                mApplicationSettings.getAllowedBoardsIds().contains(board.id) || board.isFavorite;
+        if (USER_BOARDS_CATEGORY.equals(board.category)) {
+            return board.isFavorite;
+        }
+
+        return mApplicationSettings.isDisplayAllBoards() || board.isFavorite;
     }
 
 }
