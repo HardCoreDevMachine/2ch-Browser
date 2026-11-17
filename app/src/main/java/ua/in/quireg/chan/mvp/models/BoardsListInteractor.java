@@ -39,14 +39,14 @@ public class BoardsListInteractor {
         if (!remote) {
             return mBoardsRepository.getLocalBoards()
                     .map(this::mapBoardModelsToEntities)
-                    .map(this::setHiddenBoards)
                     .map(this::setFavoriteBoards)
+                    .map(this::setHiddenBoards)
                     .subscribeOn(Schedulers.io());
         } else {
             return mBoardsRepository.getRemoteBoards()
                     .map(this::mapBoardModelsToEntities)
-                    .map(this::setHiddenBoards)
                     .map(this::setFavoriteBoards)
+                    .map(this::setHiddenBoards)
                     .subscribeOn(Schedulers.io());
         }
 
@@ -120,11 +120,10 @@ public class BoardsListInteractor {
 
     private boolean isBoardVisible(BoardEntity board) {
         if (USER_BOARDS_CATEGORY.equals(board.category)) {
-            return board.isFavorite;
+            return mApplicationSettings.isDisplayAllBoards() || board.isFavorite;
         }
 
-        return mApplicationSettings.isDisplayAllBoards() ||
-                mApplicationSettings.getAllowedBoardsIds().contains(board.id) || board.isFavorite;
+        return true;
     }
 
 }

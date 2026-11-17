@@ -13,7 +13,6 @@ import org.apache.http.impl.cookie.BasicClientCookie;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import timber.log.Timber;
@@ -199,10 +198,6 @@ public class ApplicationSettings {
 
     public boolean isDisplayAllBoards() {
         return mSharedPrefs.getBoolean(mResources.getString(R.string.pref_display_hidden_boards_key), false);
-    }
-
-    public List<String> getAllowedBoardsIds() {
-        return Arrays.asList(mResources.getStringArray(R.array.allowed_boards));
     }
 
     public boolean isLegacyImageViewer() {
