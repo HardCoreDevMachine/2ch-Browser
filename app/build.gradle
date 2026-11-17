@@ -128,8 +128,6 @@ android {
         versionName "2.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
 
-//        buildConfigField("String", "CAPTCHA_API_PUBLIC_KEY", keystoreProperties['CAPTCHA_API_PUBLIC_KEY'])
-//        buildConfigField("String", "CAPTCHA_API_PRIVATE_KEY", keystoreProperties['CAPTCHA_API_PRIVATE_KEY'])
         buildConfigField("long", "BUILD_TIMESTAMP", System.currentTimeMillis() + "L")
     }
     packagingOptions {

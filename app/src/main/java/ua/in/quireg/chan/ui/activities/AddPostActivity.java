@@ -5,22 +5,20 @@ import android.app.ProgressDialog;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.v4.content.FileProvider;
 import android.text.Editable;
-import android.text.InputType;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.inputmethod.EditorInfo;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.GridLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -37,9 +35,7 @@ import java.util.Locale;
 
 import timber.log.Timber;
 import ua.in.quireg.chan.R;
-import ua.in.quireg.chan.asynctasks.CheckCloudflareTask;
-import ua.in.quireg.chan.asynctasks.CheckPasscodeTask;
-import ua.in.quireg.chan.asynctasks.DownloadCaptchaTask;
+import ua.in.quireg.chan.asynctasks.EmojiCaptchaTask;
 import ua.in.quireg.chan.asynctasks.SendPostTask;
 import ua.in.quireg.chan.common.Constants;
 import ua.in.quireg.chan.common.Factory;
@@ -48,20 +44,16 @@ import ua.in.quireg.chan.common.utils.AppearanceUtils;
 import ua.in.quireg.chan.common.utils.IoUtils;
 import ua.in.quireg.chan.common.utils.StringUtils;
 import ua.in.quireg.chan.common.utils.ThreadPostUtils;
-import ua.in.quireg.chan.interfaces.ICaptchaView;
-import ua.in.quireg.chan.interfaces.ICheckCaptchaView;
-import ua.in.quireg.chan.interfaces.ICheckPasscodeView;
 import ua.in.quireg.chan.interfaces.ICloudflareCheckListener;
 import ua.in.quireg.chan.interfaces.IPostSendView;
 import ua.in.quireg.chan.interfaces.IUrlBuilder;
 import ua.in.quireg.chan.interfaces.IUrlParser;
 import ua.in.quireg.chan.interfaces.IWebsite;
-import ua.in.quireg.chan.models.domain.CaptchaEntity;
-import ua.in.quireg.chan.models.domain.CaptchaType;
+import ua.in.quireg.chan.models.domain.CaptchaStep;
+import ua.in.quireg.chan.models.domain.EmojiCaptcha;
+import ua.in.quireg.chan.models.domain.PostingCaptcha;
 import ua.in.quireg.chan.models.domain.SendPostModel;
 import ua.in.quireg.chan.models.presentation.AddAttachmentViewBag;
-import ua.in.quireg.chan.models.presentation.CaptchaInfoType;
-import ua.in.quireg.chan.models.presentation.CaptchaViewType;
 import ua.in.quireg.chan.models.presentation.DraftPostModel;
 import ua.in.quireg.chan.models.presentation.FileModel;
 import ua.in.quireg.chan.models.presentation.ImageFileModel;
@@ -71,7 +63,7 @@ import ua.in.quireg.chan.services.IconsList;
 import ua.in.quireg.chan.services.presentation.DraftPostsStorage;
 import ua.in.quireg.chan.settings.ApplicationSettings;
 
-public class AddPostActivity extends Activity implements IPostSendView, ICaptchaView {
+public class AddPostActivity extends Activity implements IPostSendView {
 
     private final ApplicationSettings mSettings = Factory.resolve(ApplicationSettings.class);
     private final DraftPostsStorage mDraftPostsStorage = Factory.resolve(DraftPostsStorage.class);
@@ -79,22 +71,20 @@ public class AddPostActivity extends Activity implements IPostSendView, ICaptcha
     private IUrlBuilder mUrlBuilder;
 
     private FileModel[] mAttachedFiles = new FileModel[4];
-    private CaptchaEntity mCaptcha;
     private IWebsite mWebsite;
     private String mBoardName;
     private String mThreadNumber;
-    private CaptchaViewType mCurrentCaptchaView = null;
-    private Bitmap mCaptchaBitmap;
+    private EmojiCaptcha mEmojiCaptcha;
+    private CaptchaStep mCaptchaStep;
     private File instantPhotoTempFile;
 
-    private SendPostTask mCurrentPostSendTask = null;
-    private DownloadCaptchaTask mCurrentDownloadCaptchaTask = null;
-    private CheckPasscodeTask mCurrentCheckPasscodeTask = null;
+    private SendPostTask mCurrentPostSendTask;
+    private EmojiCaptchaTask mCurrentEmojiCaptchaTask;
 
-    private TextView mCaptchaInfoView = null;
-    private View mCaptchaLoadingView = null;
-    private ImageView mCaptchaImageView = null;
-    private EditText mCaptchaAnswerView = null;
+    private TextView mCaptchaInfoView;
+    private View mCaptchaLoadingView;
+    private ImageView mCaptchaImageView;
+    private GridLayout mCaptchaKeyboard;
     private CheckBox mSageCheckBox;
     private EditText mCommentView;
     private AddAttachmentViewBag[] mAttachmentViews = new AddAttachmentViewBag[4];
@@ -102,19 +92,11 @@ public class AddPostActivity extends Activity implements IPostSendView, ICaptcha
     private Button mSendButton;
     private EditText mSubjectView;
     private Spinner mPoliticsView;
-    private boolean isPoliticsBoard = false;
-    private boolean isAppCaptchedNewPost = false;
-
-
-    private SendPostModel mCachedSendPostModel;
+    private boolean isPoliticsBoard;
 
     // Определяет, нужно ли сохранять пост (если не отправлен) или можно удалить
     // (после успешной отправки)
-    private boolean mFinishedSuccessfully = false;
-
-    private boolean mRunCloudflareCheck = false;
-    private CheckCloudflareTask mCheckCloudflareTask;
-    private CaptchaInfoType mCaptchaInfoType;
+    private boolean mFinishedSuccessfully;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -133,7 +115,6 @@ public class AddPostActivity extends Activity implements IPostSendView, ICaptcha
 
         StringBuilder commentBuilder = new StringBuilder();
 
-        // Восстанавливаем состояние, если было сохранено
         DraftPostModel draft = mDraftPostsStorage.getDraft(mBoardName, mThreadNumber);
         if (draft != null) {
             if (!StringUtils.isEmpty(draft.getComment())) {
@@ -145,12 +126,6 @@ public class AddPostActivity extends Activity implements IPostSendView, ICaptcha
             }
 
             mSageCheckBox.setChecked(draft.isSage());
-
-            if (draft.getCaptchaType() == CaptchaViewType.INFO) {
-                showCaptchaInfo(draft.getCaptchaInfoType());
-            } else if (draft.getCaptchaType() == CaptchaViewType.IMAGE && draft.getCaptchaImage() != null && !draft.getCaptchaImage().isRecycled()) {
-                showCaptcha(draft.getCaptcha(), draft.getCaptchaImage());
-            }
         }
 
         String postNumber = extras.getString(Constants.EXTRA_POST_NUMBER);
@@ -171,11 +146,7 @@ public class AddPostActivity extends Activity implements IPostSendView, ICaptcha
         // Ставим курсор в конце текстового поля
         mCommentView.setSelection(commentBuilder.length());
 
-        // Загружаем и показываем капчу
-        Timber.d("Captcha view: %s", mCurrentCaptchaView);
-        if (mCurrentCaptchaView == null) {
-            refreshCaptcha();
-        }
+        refreshCaptcha();
 
         if (StringUtils.isEmpty(mThreadNumber)) {
             setTitle(String.format(getString(R.string.data_add_thread_title), mBoardName));
@@ -198,7 +169,7 @@ public class AddPostActivity extends Activity implements IPostSendView, ICaptcha
     protected void onPause() {
         Timber.v("save state");
         if (!mFinishedSuccessfully) {
-            DraftPostModel draft = new DraftPostModel(mCommentView.getText().toString(), getAttachments(), mSageCheckBox.isChecked(), mCurrentCaptchaView, mCaptcha, mCaptchaBitmap, mCaptchaInfoType);
+            DraftPostModel draft = new DraftPostModel(mCommentView.getText().toString(), getAttachments(), mSageCheckBox.isChecked());
 
             mDraftPostsStorage.saveDraft(mBoardName, mThreadNumber, draft);
         } else {
@@ -215,7 +186,7 @@ public class AddPostActivity extends Activity implements IPostSendView, ICaptcha
         mCaptchaImageView = (ImageView) findViewById(R.id.addpost_captcha_image);
         mCaptchaLoadingView = findViewById(R.id.addpost_captcha_loading);
         mCaptchaInfoView = (TextView) findViewById(R.id.addpost_captcha_info_message);
-        mCaptchaAnswerView = (EditText) findViewById(R.id.addpost_captcha_input);
+        mCaptchaKeyboard = (GridLayout) findViewById(R.id.addpost_captcha_keyboard);
         mCommentView = (EditText) findViewById(R.id.addpost_comment_input);
         mSageCheckBox = (CheckBox) findViewById(R.id.addpost_sage_checkbox);
         mAttachmentViews[0] = AddAttachmentViewBag.fromView(findViewById(R.id.addpost_attachment_view_1));
@@ -272,14 +243,6 @@ public class AddPostActivity extends Activity implements IPostSendView, ICaptcha
 
         // Обрабатываем нажатие на кнопку "Отправить"
         mSendButton.setOnClickListener(v -> AddPostActivity.this.onSend());
-        // и заодно при нажатии на Send на софтовой клавиатуре при вводе капчи
-        mCaptchaAnswerView.setOnEditorActionListener((textView, actionId, keyEvent) -> {
-            if (EditorInfo.IME_ACTION_SEND == actionId) {
-                AddPostActivity.this.onSend();
-                return true;
-            }
-            return false;
-        });
 
         // Удаляем прикрепленный файл
         for (int i = 0; i < mAttachmentViews.length; i++) {
@@ -291,88 +254,42 @@ public class AddPostActivity extends Activity implements IPostSendView, ICaptcha
     }
 
     private void onSend() {
-        // Собираем все заполненные поля
-        String captchaAnswer = mCaptchaAnswerView.getText().toString();
-
-        if (mRunCloudflareCheck) {
-            // Check the cloudflare captcha and then show a posting captcha
-            showPostLoading();
-            if (mCheckCloudflareTask != null) {
-                mCheckCloudflareTask.cancel(true);
-            }
-            mCheckCloudflareTask = new CheckCloudflareTask(mWebsite, mCaptcha, captchaAnswer, new ICheckCaptchaView() {
-                @Override
-                public void beforeCheck() {
-                }
-
-                @Override
-                public void showSuccess() {
-                    AddPostActivity.this.hidePostLoading();
-                    AddPostActivity.this.setCfRecaptcha(false);
-                    AddPostActivity.this.refreshCaptcha();
-                }
-
-                @Override
-                public void showError(String message) {
-                    AddPostActivity.this.hidePostLoading();
-                    AddPostActivity.this.showError(message != null ? message : AddPostActivity.this.getString(R.string.error_cloudflare_recaptcha), false);
-                    AddPostActivity.this.refreshCaptcha();
-                }
-            });
-            mCheckCloudflareTask.execute();
+        PostingCaptcha captcha = getPostingCaptcha();
+        if (captcha == null) {
+            AppearanceUtils.showLongToast(this, getString(R.string.addpost_captcha_solve_emoji));
             return;
         }
 
         String comment = mCommentView.getText().toString();
-
         if (StringUtils.isEmpty(comment) && !hasAttachments()) {
             AppearanceUtils.showLongToast(this, getString(R.string.warning_write_comment));
             return;
         }
 
-        boolean isSage = mSageCheckBox.isChecked();
-
-        if (StringUtils.isEmpty(mThreadNumber)
-                && !hasAttachments()
-                && !mBoardName.equals("d")) {
+        if (StringUtils.isEmpty(mThreadNumber) && !hasAttachments() && !mBoardName.equals("d")) {
             AppearanceUtils.showLongToast(this, getString(R.string.warning_attach_file_new_thread));
             return;
         }
 
         String subject = StringUtils.nullIfEmpty(mSubjectView.getText().toString());
-
         String politics = null;
         if (isPoliticsBoard) {
             int itemIndex = mPoliticsView.getSelectedItemPosition();
             politics = Math.max(itemIndex, 0) + "";
         }
 
-        String name = mSettings.getName();
-        SendPostModel pe = new SendPostModel(mCaptcha, captchaAnswer, comment, isSage, getAttachedFiles(), subject, politics, name);
-        pe.setParentThread(mThreadNumber);
-        mCachedSendPostModel = pe;
-
-        // Отправляем
-        sendPost(pe);
+        SendPostModel post = new SendPostModel(captcha, comment, mSageCheckBox.isChecked(), getAttachedFiles(), subject, politics, mSettings.getName());
+        post.setParentThread(mThreadNumber);
+        sendPost(post);
     }
 
-    private void setCfRecaptcha(boolean isCfRecaptcha) {
-        mRunCloudflareCheck = isCfRecaptcha;
-    }
 
-    private void sendPost(SendPostModel pe) {
+    private void sendPost(SendPostModel post) {
         if (mCurrentPostSendTask != null) {
             mCurrentPostSendTask.cancel(true);
         }
-        if (mCaptcha != null
-                && mCaptcha.getCaptchaType() == CaptchaType.RECAPTCHA_V2
-                && Constants.SDK_VERSION >= Build.VERSION_CODES.HONEYCOMB) {
-            Intent reIntent = new Intent(this, NewRecaptchaActivity.class);
-            startActivityForResult(reIntent, Constants.REQUEST_CODE_RECAPTCHA);
-        } else {
-            mCurrentPostSendTask = new SendPostTask(this, this, mWebsite, mBoardName, mThreadNumber, pe);
-            mCurrentPostSendTask.execute();
-        }
+        mCurrentPostSendTask = new SendPostTask(this, mWebsite, mBoardName, mThreadNumber, post);
+        mCurrentPostSendTask.execute();
     }
 
     @Override
@@ -394,36 +311,34 @@ public class AddPostActivity extends Activity implements IPostSendView, ICaptcha
     }
 
     @Override
-    public void showError(String error, boolean isRecaptcha) {
+    public void showError(String error, boolean isRecaptcha, int errorCode) {
         error = error != null ? error : getString(R.string.error_send_post);
         AppearanceUtils.showLongToast(this, error);
 
-        if (isRecaptcha) {
-            setCfRecaptcha(true);
+        if (errorCode == -5) {
             refreshCaptcha();
         }
 
-        if (error.startsWith("Ошибка: Неверный код подтверждения.") || error.startsWith("Капча невалидна") || error.startsWith("Вы постите слишком быстро")) {
-            refreshCaptcha();
+        if (isRecaptcha || error.startsWith("503")) {
+            startCloudflareCheck();
         }
+    }
 
-        if (error.startsWith("503")) {
-            String url = mUrlBuilder.getPostingUrlHtml();
-            new CloudflareCheckService(url, this, new ICloudflareCheckListener() {
-                public void onSuccess() {
-                    refreshCaptcha();
-                    AppearanceUtils.showLongToast(AddPostActivity.this, getString(R.string.notification_cloudflare_check_finished));
-                }
+    private void startCloudflareCheck() {
+        new CloudflareCheckService(mUrlBuilder.getPostingUrlHtml(), this, new ICloudflareCheckListener() {
+            public void onSuccess() {
+                refreshCaptcha();
+                AppearanceUtils.showLongToast(AddPostActivity.this, getString(R.string.notification_cloudflare_check_finished));
+            }
 
-                public void onStart() {
-                    AppearanceUtils.showLongToast(AddPostActivity.this, getString(R.string.notification_cloudflare_check_started));
-                }
+            public void onStart() {
+                AppearanceUtils.showLongToast(AddPostActivity.this, getString(R.string.notification_cloudflare_check_started));
+            }
 
-                public void onTimeout() {
-                    AppearanceUtils.showLongToast(AddPostActivity.this, getString(R.string.error_cloudflare_check_timeout));
-                }
-            }).start();
-        }
+            public void onTimeout() {
+                AppearanceUtils.showLongToast(AddPostActivity.this, getString(R.string.error_cloudflare_check_timeout));
+            }
+        }).start();
     }
 
     @Override
@@ -444,119 +359,90 @@ public class AddPostActivity extends Activity implements IPostSendView, ICaptcha
         mCurrentPostSendTask = null;
     }
 
-    @Override
-    public void showCaptchaLoading() {
-        switchToCaptchaView(CaptchaViewType.LOADING);
+    private void showCaptchaLoading() {
+        mCaptchaStep = null;
+        mEmojiCaptcha = null;
+        mCaptchaImageView.setVisibility(View.GONE);
+        mCaptchaKeyboard.setVisibility(View.GONE);
+        mCaptchaInfoView.setVisibility(View.GONE);
+        mCaptchaLoadingView.setVisibility(View.VISIBLE);
     }
 
-    @Override
-    public void skipCaptcha(boolean successPasscode, boolean failPasscode) {
-        if (successPasscode) {
-            showCaptchaInfo(CaptchaInfoType.PASSCODE_SUCCESS);
-        } else if (failPasscode) {
-            showCaptchaInfo(CaptchaInfoType.PASSCODE_FAIL);
+    private void showCaptchaStep(CaptchaStep step) {
+        mCurrentEmojiCaptchaTask = null;
+        mCaptchaStep = step;
+        mCaptchaLoadingView.setVisibility(View.GONE);
+
+        if (step instanceof CaptchaStep.EmojiChallenge) {
+            showEmojiChallenge(((CaptchaStep.EmojiChallenge) step).getCaptcha());
+        } else if (step instanceof CaptchaStep.Ready) {
+            showCaptchaReady(((CaptchaStep.Ready) step).getCaptcha());
         } else {
-            showCaptchaInfo(CaptchaInfoType.SKIP);
+            showCaptchaFailure(((CaptchaStep.Error) step).getMessage());
         }
     }
 
-    @Override
-    public void showCaptcha(CaptchaEntity captcha, Bitmap captchaImage) {
-        mCaptchaImageView.setImageResource(android.R.color.transparent);
-        if (mCaptchaBitmap != null) {
-            mCaptchaBitmap.recycle();
-        }
+    private void showEmojiChallenge(EmojiCaptcha captcha) {
+        mEmojiCaptcha = captcha;
+        mCaptchaImageView.setImageBitmap(captcha.getImage());
+        mCaptchaImageView.setVisibility(View.VISIBLE);
+        mCaptchaInfoView.setVisibility(View.GONE);
+        mCaptchaKeyboard.removeAllViews();
+        for (int i = 0; i < captcha.getKeyboard().size(); i++) {
+            final int emojiNumber = i;
+            ImageButton button = new ImageButton(this);
+            button.setImageBitmap(captcha.getKeyboard().get(i));
+            button.setAdjustViewBounds(true);
+            button.setContentDescription(getString(R.string.addpost_captcha_emoji_number, i + 1));
+            button.setOnClickListener(v -> selectEmoji(emojiNumber));
 
-        mCaptcha = captcha;
-        mCaptchaBitmap = captchaImage;
-        mCaptchaImageView.setImageBitmap(captchaImage);
-
-        if (captcha.getCaptchaType() == CaptchaType.RECAPTCHA_V2) {
-            showCaptchaInfo(CaptchaInfoType.RECAPTCHA_V2);
-        } else {
-            switchToCaptchaView(CaptchaViewType.IMAGE);
+            GridLayout.LayoutParams layoutParams = new GridLayout.LayoutParams(
+                    GridLayout.spec(GridLayout.UNDEFINED),
+                    GridLayout.spec(GridLayout.UNDEFINED, 1f));
+            layoutParams.width = 0;
+            layoutParams.height = GridLayout.LayoutParams.WRAP_CONTENT;
+            button.setLayoutParams(layoutParams);
+            mCaptchaKeyboard.addView(button);
         }
-
-        if (captcha.getCaptchaType() == CaptchaType.DVACH) {
-            mCaptchaAnswerView.setInputType(InputType.TYPE_CLASS_NUMBER);
-        }
+        mCaptchaKeyboard.setVisibility(View.VISIBLE);
     }
 
-    public void showCaptchaInfo(CaptchaInfoType captchaInfoType) {
-        mCaptchaInfoType = captchaInfoType;
-
-        String message;
-
-        if (mCaptchaInfoType == CaptchaInfoType.PASSCODE_SUCCESS) {
-            message = getString(R.string.addpost_captcha_can_skip_passcode);
-
-        } else if (mCaptchaInfoType == CaptchaInfoType.PASSCODE_FAIL) {
-            message = getString(R.string.addpost_captcha_fail_passcode);
-
-        } else if (mCaptchaInfoType == CaptchaInfoType.SKIP ||
-                mCaptchaInfoType == CaptchaInfoType.API) {
-            message = getString(R.string.addpost_captcha_can_skip);
-
-        } else if (mCaptchaInfoType == CaptchaInfoType.RECAPTCHA_V2) {
-            message = getString(R.string.addpost_captcha_solve_recaptcha);
-
-        } else {
-            message = getString(R.string.error_unknown);
-
-        }
-
-        mCaptchaInfoView.setText(message);
-
-        switchToCaptchaView(CaptchaViewType.INFO);
+    private void showCaptchaReady(PostingCaptcha captcha) {
+        mEmojiCaptcha = null;
+        mCaptchaImageView.setVisibility(View.GONE);
+        mCaptchaKeyboard.setVisibility(View.GONE);
+        mCaptchaInfoView.setText(captcha.getType() == PostingCaptcha.Type.PASSCODE
+                ? R.string.addpost_captcha_can_skip_passcode
+                : R.string.addpost_captcha_can_skip);
+        mCaptchaInfoView.setVisibility(View.VISIBLE);
     }
 
-    @Override
-    public void appCaptcha(CaptchaEntity captcha) {
-        mCaptcha = captcha;
-        isAppCaptchedNewPost = true;
-        showCaptchaInfo(CaptchaInfoType.API);
+    private void showCaptchaFailure(String message) {
+        mEmojiCaptcha = null;
+        mCaptchaImageView.setVisibility(View.GONE);
+        mCaptchaKeyboard.setVisibility(View.GONE);
+        mCaptchaInfoView.setText(!StringUtils.isEmpty(message) ? message : getString(R.string.error_read_response));
+        mCaptchaInfoView.setVisibility(View.VISIBLE);
     }
 
-    @Override
-    public void showCaptchaError(String errorMessage) {
-        mCaptchaImageView.setImageResource(android.R.color.transparent);
-        AppearanceUtils.showLongToast(this, !StringUtils.isEmpty(errorMessage)
-                ? errorMessage
-                : getResources().getString(R.string.error_read_response));
-
-        switchToCaptchaView(CaptchaViewType.ERROR);
-    }
-
-    private void switchToCaptchaView(CaptchaViewType vt) {
-        mCurrentCaptchaView = vt;
-        if (vt == null) {
+    private void selectEmoji(int emojiNumber) {
+        if (mEmojiCaptcha == null) {
             return;
         }
-
-        switch (vt) {
-            case LOADING:
-                mCaptchaImageView.setVisibility(View.GONE);
-                mCaptchaImageView.setImageResource(android.R.color.transparent);
-                mCaptchaLoadingView.setVisibility(View.VISIBLE);
-                mCaptchaInfoView.setVisibility(View.GONE);
-                break;
-            case ERROR:
-            case IMAGE:
-                mCurrentDownloadCaptchaTask = null;
-                mCaptchaAnswerView.setVisibility(View.VISIBLE);
-                mCaptchaImageView.setVisibility(View.VISIBLE);
-                mCaptchaLoadingView.setVisibility(View.GONE);
-                mCaptchaInfoView.setVisibility(View.GONE);
-                break;
-            case INFO:
-                mCurrentDownloadCaptchaTask = null;
-                mCaptchaAnswerView.setVisibility(View.GONE);
-                mCaptchaImageView.setVisibility(View.GONE);
-                mCaptchaLoadingView.setVisibility(View.GONE);
-                mCaptchaInfoView.setVisibility(View.VISIBLE);
-                break;
+        for (int i = 0; i < mCaptchaKeyboard.getChildCount(); i++) {
+            mCaptchaKeyboard.getChildAt(i).setEnabled(false);
         }
+        if (mCurrentEmojiCaptchaTask != null) {
+            mCurrentEmojiCaptchaTask.cancel(true);
+        }
+        mCurrentEmojiCaptchaTask = new EmojiCaptchaTask(mWebsite, mEmojiCaptcha.getTokenId(), emojiNumber, this::showCaptchaStep);
+        mCurrentEmojiCaptchaTask.execute();
+    }
 
+    private PostingCaptcha getPostingCaptcha() {
+        return mCaptchaStep instanceof CaptchaStep.Ready
+                ? ((CaptchaStep.Ready) mCaptchaStep).getCaptcha()
+                : null;
     }
 
     @Override
@@ -633,21 +519,6 @@ public class AddPostActivity extends Activity implements IPostSendView, ICaptcha
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == Constants.REQUEST_CODE_RECAPTCHA) {
-            if (resultCode == NewRecaptchaActivity.OK) {
-                String hash = data.getStringExtra("hash");
-                if (hash != null && hash.length() != 0) {
-                    if (mCurrentPostSendTask != null) {
-                        mCurrentPostSendTask.cancel(true);
-                    }
-                    mCachedSendPostModel.setRecaptchaHash(hash);
-                    mCurrentPostSendTask = new SendPostTask(this, this, mWebsite, mBoardName, mThreadNumber, mCachedSendPostModel);
-                    mCachedSendPostModel = null;
-                    mCurrentPostSendTask.execute();
-                }
-            }
-            return;
-        }
         if (resultCode == RESULT_OK) {
             switch (requestCode) {
                 case Constants.REQUEST_CODE_FILE_LIST_ACTIVITY:
@@ -755,35 +626,15 @@ public class AddPostActivity extends Activity implements IPostSendView, ICaptcha
     }
 
     private void refreshCaptcha() {
-        Timber.d("refreshCaptcha()");
-        if (mCurrentCaptchaView == CaptchaViewType.INFO) {
-            refreshCaptchaSkipView();
-        } else {
-            refreshCaptchaImageView();
+        if (mCurrentEmojiCaptchaTask != null) {
+            mCurrentEmojiCaptchaTask.cancel(true);
         }
+        showCaptchaLoading();
+        mCurrentEmojiCaptchaTask = new EmojiCaptchaTask(mWebsite, mBoardName, mThreadNumber, this::showCaptchaStep);
+        mCurrentEmojiCaptchaTask.execute();
     }
 
-    private void refreshCaptchaSkipView() {
-        Timber.d("refreshCaptchaSkipView()");
-        if (mCurrentCheckPasscodeTask != null) {
-            mCurrentCheckPasscodeTask.cancel(true);
-        }
 
-        mCurrentCheckPasscodeTask = new CheckPasscodeTask(mWebsite, new CheckPasscodeView());
-        mCurrentCheckPasscodeTask.execute();
-    }
-
-    private void refreshCaptchaImageView() {
-        Timber.d("refreshCaptchaImageView()");
-        if (mCurrentDownloadCaptchaTask != null) {
-            mCurrentDownloadCaptchaTask.cancel(true);
-        }
-
-        mCaptchaAnswerView.setText("");
-
-        mCurrentDownloadCaptchaTask = new DownloadCaptchaTask(this, mWebsite, mBoardName, mThreadNumber, mSettings.getCaptchaType());
-        mCurrentDownloadCaptchaTask.execute();
-    }
 
     private void formatSelectedText(String code) {
         Editable editable = mCommentView.getEditableText();
@@ -840,28 +691,4 @@ public class AddPostActivity extends Activity implements IPostSendView, ICaptcha
         }
     }
 
-    private class CheckPasscodeView implements ICheckPasscodeView {
-        @Override
-        public void onPasscodeRemoved() {
-            Timber.d("onPasscodeRemoved()");
-            AddPostActivity activity = AddPostActivity.this;
-            activity.switchToCaptchaView(null);
-            activity.refreshCaptcha();
-        }
-
-        @Override
-        public void onPasscodeChecked(boolean isSuccess, String errorMessage) {
-            Timber.d("onPasscodeChecked()");
-            AddPostActivity activity = AddPostActivity.this;
-            if (isSuccess) {
-                activity.showCaptchaInfo(CaptchaInfoType.PASSCODE_SUCCESS);
-                AppearanceUtils.showLongToast(activity, activity.getString(R.string.notification_passcode_correct));
-            } else {
-                String error = !StringUtils.isEmpty(errorMessage) ? errorMessage : activity.getString(R.string.notification_passcode_incorrect);
-                AppearanceUtils.showLongToast(activity, error);
-                activity.switchToCaptchaView(null);
-                activity.refreshCaptcha();
-            }
-        }
-    }
 }

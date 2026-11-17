@@ -83,7 +83,6 @@
             android:name="ua.in.quireg.chan.ui.activities.FilesListActivity"
             android:configChanges="keyboardHidden|orientation|screenSize" />
 
-        <activity android:name="ua.in.quireg.chan.ui.activities.NewRecaptchaActivity" />
 
         <provider
             android:name="android.support.v4.content.FileProvider"

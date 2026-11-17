@@ -18,9 +18,8 @@
     <string name="addpost_subject_hint">Subject</string>
     <string name="addpost_captcha_can_skip">Send without confirmation</string>
     <string name="addpost_captcha_can_skip_passcode">You have a passcode</string>
-    <string name="addpost_captcha_fail_passcode">Bad passcode, refresh the captcha</string>
-    <string name="addpost_captcha_hint">Confirmation code</string>
-    <string name="addpost_captcha_solve_recaptcha">You will see captcha after submit</string>
+    <string name="addpost_captcha_solve_emoji">Solve the emoji captcha before posting</string>
+    <string name="addpost_captcha_emoji_number">Emoji %1$d</string>
     <string name="addpost_send_button">Send</string>
     <string name="addpost_refresh_button">Refresh</string>
     <string name="pick_board_input_hint">Board code</string>

@@ -77,7 +77,7 @@ public class MakabaUrlBuilder implements IUrlBuilder {
     }
 
     public String getPostingUrlApi() {
-        return this.createRootUri("makaba/posting.fcgi?json=1").toString();
+        return this.createRootUri("user/posting").toString();
     }
 
     public String getPostingUrlHtml() {
@@ -89,21 +89,10 @@ public class MakabaUrlBuilder implements IUrlBuilder {
     }
 
     public String getPasscodeCheckUrl() {
-        return this.createRootUri("makaba/makaba.fcgi").toString();
+        return this.createRootUri("user/passlogin?json=1").toString();
     }
 
-    @Override
-    public String getPasscodeCookieCheckUrl(String boardName, String threadNumber) {
-        Uri uri = this.createRootUri(
-            "/api/captcha/2chaptcha/id?board=" + boardName + "&thread=" + threadNumber);
-        return uri.toString();
-    }
 
-    @Override
-    public String getAppCaptchaCheckUrl(String publicKey) {
-        Uri uri = this.createRootUri("/api/captcha/app/id/" + publicKey);
-        return uri.toString();
-    }
 
     public String makeAbsolute(String url) {
         Uri uri = Uri.parse(url);

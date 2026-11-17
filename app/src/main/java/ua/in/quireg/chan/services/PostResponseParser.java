@@ -1,33 +1,29 @@
 package ua.in.quireg.chan.services;
 
-import java.util.regex.Pattern;
+import ua.in.quireg.chan.common.library.ExtendedObjectMapper;
 
-import ua.in.quireg.chan.common.utils.RegexUtils;
+import ua.in.quireg.chan.boards.makaba.models.ApiError;
+import ua.in.quireg.chan.boards.makaba.models.PostingResponse;
+import ua.in.quireg.chan.common.utils.StringUtils;
 import ua.in.quireg.chan.models.domain.SendPostResult;
 
 public class PostResponseParser {
-    private static final String TAG = "PostResponseParser";
-    private static final Pattern sCenterPattern = Pattern.compile("<center>(.+?)</center>");
-    private static final Pattern sErrorPattern = Pattern.compile("(.+?)<a[^>]*>Назад</a>.*?");
-    private static final Pattern sMakabaErrorPattern = Pattern.compile("\"Reason\":\\s?\"(.*?)\"");
+    private final ExtendedObjectMapper mMapper = new ExtendedObjectMapper();
 
     public SendPostResult isPostSuccessful(String boardName, String responseText) {
         SendPostResult result = new SendPostResult();
-
-        if (responseText == null) {
+        try {
+            PostingResponse response = mMapper.readValue(responseText, PostingResponse.class);
+            ApiError error = response.error;
+            if (error != null && error.code != 0) {
+                result.error = StringUtils.emptyIfNull(error.message);
+                result.errorCode = error.code;
+                return result;
+            }
             result.isSuccess = true;
-            return result;
+        } catch (Exception e) {
+            result.error = !StringUtils.isEmpty(e.getMessage()) ? e.getMessage() : "Invalid posting response";
         }
-
-        String errorText = RegexUtils.getGroupValue(responseText, sMakabaErrorPattern, 1);
-        if (errorText != null) {
-            result.error = errorText;
-            return result;
-        }
-
-        // Пусть будет true, т.к. если не нашел ошибку, то скорей всего
-        // результат верный
-        result.isSuccess = true;
         return result;
     }
 }

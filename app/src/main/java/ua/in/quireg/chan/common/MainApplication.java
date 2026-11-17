@@ -39,10 +39,8 @@ import ua.in.quireg.chan.di.NetModule;
 import ua.in.quireg.chan.di.WebsiteModule;
 import ua.in.quireg.chan.services.BitmapManager;
 import ua.in.quireg.chan.services.CacheDirectoryManager;
-import ua.in.quireg.chan.services.DvachCaptchaService;
-import ua.in.quireg.chan.services.HtmlCaptchaChecker;
+import ua.in.quireg.chan.services.EmojiCaptchaService;
 import ua.in.quireg.chan.services.IconsList;
-import ua.in.quireg.chan.services.MailruCaptchaService;
 import ua.in.quireg.chan.services.PostSender;
 import ua.in.quireg.chan.services.ThreadImagesService;
 import ua.in.quireg.chan.services.http.DownloadFileService;
@@ -159,10 +157,8 @@ public class MainApplication extends Application {
         container.register(HiddenThreadsDataSource.class, hiddenThreadsDataSource);
         container.register(DownloadFileService.class, downloadFileService);
         container.register(ThreadImagesService.class, new ThreadImagesService());
-        container.register(HtmlCaptchaChecker.class, new HtmlCaptchaChecker(httpStringReader));
+        container.register(EmojiCaptchaService.class, new EmojiCaptchaService(httpClient, httpStringReader));
         container.register(IconsList.class, new IconsList());
-        container.register(MailruCaptchaService.class, new MailruCaptchaService(httpStringReader));
-        container.register(DvachCaptchaService.class, new DvachCaptchaService());
 
         httpClient.setCookie(mSettings.getCloudflareClearanceCookie());
         httpClient.setCookie(mSettings.getPassCodeCookie());

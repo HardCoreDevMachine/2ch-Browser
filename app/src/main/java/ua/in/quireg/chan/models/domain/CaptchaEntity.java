@@ -3,7 +3,6 @@ package ua.in.quireg.chan.models.domain;
 public class CaptchaEntity {
     private String url;
     private String key;
-    private CaptchaType captchaType;
     private boolean isVerified;
     private boolean isError;
     private String errorMessage;
@@ -24,13 +23,6 @@ public class CaptchaEntity {
         this.key = key;
     }
 
-    public CaptchaType getCaptchaType() {
-        return captchaType;
-    }
-
-    public void setCaptchaType(CaptchaType captchaType) {
-        this.captchaType = captchaType;
-    }
 
     public boolean isVerified() {
         return isVerified;

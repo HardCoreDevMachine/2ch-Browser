@@ -3,6 +3,17 @@ package ua.in.quireg.chan.asynctasks;
 import android.net.Uri;
 import android.os.AsyncTask;
 
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.cookie.Cookie;
+import org.apache.http.entity.mime.HttpMultipartMode;
+import org.apache.http.entity.mime.MultipartEntity;
+import org.apache.http.entity.mime.content.StringBody;
+import org.apache.http.impl.client.DefaultHttpClient;
+import ua.in.quireg.chan.common.library.ExtendedObjectMapper;
+
+import ua.in.quireg.chan.boards.makaba.models.ApiError;
+import ua.in.quireg.chan.boards.makaba.models.CaptchaApiResponse;
 import ua.in.quireg.chan.common.Constants;
 import ua.in.quireg.chan.common.Factory;
 import ua.in.quireg.chan.common.library.ExtendedHttpClient;
@@ -12,19 +23,6 @@ import ua.in.quireg.chan.common.utils.UriUtils;
 import ua.in.quireg.chan.interfaces.ICheckPasscodeView;
 import ua.in.quireg.chan.interfaces.IWebsite;
 import ua.in.quireg.chan.settings.ApplicationSettings;
-
-import org.apache.http.HttpResponse;
-import org.apache.http.NameValuePair;
-import org.apache.http.StatusLine;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.params.HttpClientParams;
-import org.apache.http.cookie.Cookie;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.message.BasicNameValuePair;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class CheckPasscodeTask extends AsyncTask<Void, Void, String> {
     private final ICheckPasscodeView mCheckPasscodeView;
@@ -50,51 +48,52 @@ public class CheckPasscodeTask extends AsyncTask<Void, Void, String> {
 
     @Override
     protected String doInBackground(Void... params) {
+        if (StringUtils.isEmpty(mPasscode)) {
+            return "removed";
+        }
+
         HttpPost post = null;
         HttpResponse response = null;
         try {
-            String url = this.mWebsite.getUrlBuilder().getPasscodeCheckUrl();
+            String url = mWebsite.getUrlBuilder().getPasscodeCheckUrl();
             post = new HttpPost(url);
-
-            List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(2);
-            if (StringUtils.isEmpty(this.mPasscode)) {
-                nameValuePairs.add(new BasicNameValuePair("task", "logout"));
-            } else {
-                nameValuePairs.add(new BasicNameValuePair("task", "auth"));
-                nameValuePairs.add(new BasicNameValuePair("usercode", this.mPasscode));
-            }
-            UrlEncodedFormEntity entity = new UrlEncodedFormEntity(nameValuePairs);
+            MultipartEntity entity = new MultipartEntity(HttpMultipartMode.BROWSER_COMPATIBLE, Constants.MULTIPART_BOUNDARY, Constants.UTF8_CHARSET);
+            entity.addPart("passcode", new StringBody(mPasscode, Constants.UTF8_CHARSET));
             post.setEntity(entity);
 
-            HttpClientParams.setRedirecting(post.getParams(), false);
-
-            response = this.mHttpClient.execute(post);
-            StatusLine status = response.getStatusLine();
-
-            if (status.getStatusCode() != 302 && status.getStatusCode() != 301) {
-                this.mErrorMessage = status.getStatusCode() + " - " + status.getReasonPhrase();
+            response = mHttpClient.execute(post);
+            if (response.getStatusLine().getStatusCode() != 200) {
+                mErrorMessage = response.getStatusLine().toString();
                 return null;
             }
 
-            String location = ExtendedHttpClient.getLocationHeader(response);
+            CaptchaApiResponse apiResponse = new ExtendedObjectMapper().readValue(
+                    org.apache.http.util.EntityUtils.toString(response.getEntity(), Constants.UTF8_CHARSET.name()),
+                    CaptchaApiResponse.class);
+            ApiError error = apiResponse.error;
+            if (error != null && error.code != 0) {
+                mErrorMessage = error.message;
+                return null;
+            }
 
-            List<Cookie> cookies = this.mHttpClient.getCookieStore().getCookies();
-            for (Cookie c : cookies) {
-                if (c.getName().equals(Constants.USERCODE_NOCAPTCHA_COOKIE) &&
-                    UriUtils.areCookieDomainsEqual(c.getDomain(), Uri.parse(url).getHost())) {
-                    this.mUserCodeCookie = c;
+            for (Cookie cookie : mHttpClient.getCookieStore().getCookies()) {
+                if (cookie.getName().equals(Constants.USERCODE_NOCAPTCHA_COOKIE)
+                        && UriUtils.areCookieDomainsEqual(cookie.getDomain(), Uri.parse(url).getHost())) {
+                    mUserCodeCookie = cookie;
                     break;
                 }
             }
-
-            return location;
+            if (mUserCodeCookie == null) {
+                mErrorMessage = "Authentication response does not set passcode_auth";
+                return null;
+            }
+            return "authenticated";
         } catch (Exception e) {
             MyLog.e("CheckPasscodeTask", e);
-            this.mErrorMessage = e.getMessage();
+            mErrorMessage = e.getMessage();
         } finally {
             ExtendedHttpClient.releaseRequestResponse(post, response);
         }
-
         return null;
     }
 
@@ -112,7 +111,7 @@ public class CheckPasscodeTask extends AsyncTask<Void, Void, String> {
             this.mApplicationSettings.clearPassCodeCookie();
         }
 
-        boolean isSuccess = StringUtils.emptyIfNull(result).equals("/b/");
+        boolean isSuccess = "authenticated".equals(result);
         this.mCheckPasscodeView.onPasscodeChecked(isSuccess, this.mErrorMessage);
     }
 }

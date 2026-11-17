@@ -11,8 +11,9 @@ public class AllTests {
         suite.addTestSuite(UriUtilsTest.class);
         suite.addTestSuite(AttachmentInfoTest.class);
         suite.addTestSuite(PostResponseParserTest.class);
+        suite.addTestSuite(EmojiCaptchaResponseParserTest.class);
+        suite.addTestSuite(MakabaSendPostMapperTest.class);
         suite.addTestSuite(HtmlUtilsTest.class);
-        suite.addTestSuite(HtmlCaptchaCheckerTest.class);
         suite.addTestSuite(ThreadPostUtilsTest.class);
         //$JUnit-END$
         return suite;

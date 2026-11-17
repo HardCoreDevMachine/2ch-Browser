@@ -78,13 +78,6 @@ public class FourchanUrlBuilder implements IUrlBuilder {
         return null;
     }
 
-    public String getPasscodeCookieCheckUrl(String boardName, String threadNumber) {
-        return null;
-    }
 
-    @Override
-    public String getAppCaptchaCheckUrl(String public_key) {
-        return null;
-    }
 
 }

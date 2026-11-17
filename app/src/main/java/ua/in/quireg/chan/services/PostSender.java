@@ -123,9 +123,8 @@ public class PostSender {
             httpPost.setHeader("Referer", referer);
             httpPost.setHeader("Content-Type", "multipart/form-data; boundary=" + Constants.MULTIPART_BOUNDARY);
 
-            String usercode = this.mApplicationSettings.getPasscodeCookieValue();
 
-            HttpEntity entity = this.mMakabaSendPostMapper.mapModelToHttpEntity(boardName, usercode, postModel);
+            HttpEntity entity = this.mMakabaSendPostMapper.mapModelToHttpEntity(boardName, postModel);
             httpPost.setEntity(entity);
 
             // post and ignore recvfrom exceptions

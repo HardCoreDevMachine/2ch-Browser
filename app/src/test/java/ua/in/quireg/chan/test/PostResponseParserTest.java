@@ -2,28 +2,25 @@ package ua.in.quireg.chan.test;
 
 import android.test.InstrumentationTestCase;
 
-import ua.in.quireg.chan.exceptions.SendPostException;
 import ua.in.quireg.chan.models.domain.SendPostResult;
 import ua.in.quireg.chan.services.PostResponseParser;
 
-// TODO: remove and write tests for Makaba responses end errors
 public class PostResponseParserTest extends InstrumentationTestCase {
 
     private final PostResponseParser mParser = new PostResponseParser();
 
-    public void testAddPostSuccess() throws SendPostException {
-        String response = "Reload the page to get source for: http://2ch.so/test/wakaba.pl";
-        SendPostResult result = this.mParser.isPostSuccessful("f", response);
+    public void testAcceptsSuccessfulApiResponse() {
+        SendPostResult result = mParser.isPostSuccessful("b", "{\"result\":1,\"thread\":123}");
 
         assertTrue(result.isSuccess);
+        assertEquals(0, result.errorCode);
     }
 
-    public void testAddWithoutComment() {
-        String response = "<hr style=\"clear: left;\">" + "<center>" + "<strong><font size=\"5\">Some test error.</strong></font><br />" + "<h2 style=\"text-align: center\">" + "<a href=\"http://2ch.so/test/res/52984.html\">Назад</a><br />" + "</h2>" + "</center>";
-
-        SendPostResult result = this.mParser.isPostSuccessful("f", response);
+    public void testExposesCaptchaValidationError() {
+        SendPostResult result = mParser.isPostSuccessful("b", "{\"result\":0,\"error\":{\"code\":-5,\"message\":\"Капча не валидна\"}}");
 
         assertFalse(result.isSuccess);
-        assertEquals(result.error, "Some test error.");
+        assertEquals(-5, result.errorCode);
+        assertEquals("Капча не валидна", result.error);
     }
 }

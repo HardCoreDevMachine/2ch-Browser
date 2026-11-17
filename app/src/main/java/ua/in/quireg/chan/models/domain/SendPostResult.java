@@ -5,4 +5,5 @@ public class SendPostResult {
 	public boolean isRecaptcha;
 	public String location;
 	public String error;
+    public int errorCode;
 }

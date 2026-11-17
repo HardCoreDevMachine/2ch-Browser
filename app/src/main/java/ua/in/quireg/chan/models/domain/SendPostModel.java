@@ -4,9 +4,7 @@ import java.io.File;
 import java.util.List;
 
 public class SendPostModel {
-    private String mRecaptchaHash = null;
-    private CaptchaEntity mCaptcha;
-    private String mCaptchaAnswer;
+    private final PostingCaptcha mCaptcha;
     private String mComment;
     private boolean mIsSage;
     private List<File> mAttachedFiles;
@@ -16,39 +14,18 @@ public class SendPostModel {
     private String mVideo;
     private String mParentThread;
 
-    public SendPostModel(CaptchaEntity captcha, String captchaAnswer, String comment, boolean isSage, List<File> attachedFiles, String subject, String politics, String name) {
-        this.mCaptcha = captcha;
-        this.mCaptchaAnswer = captchaAnswer;
-        this.mComment = comment;
-        this.mIsSage = isSage;
-        this.mAttachedFiles = attachedFiles;
-        this.mSubject = subject;
-        this.mPolitics = politics;
-        this.mName = name;
+    public SendPostModel(PostingCaptcha captcha, String comment, boolean isSage, List<File> attachedFiles, String subject, String politics, String name) {
+        mCaptcha = captcha;
+        mComment = comment;
+        mIsSage = isSage;
+        mAttachedFiles = attachedFiles;
+        mSubject = subject;
+        mPolitics = politics;
+        mName = name;
     }
 
-    public void setRecaptchaHash(String hash) {
-        this.mRecaptchaHash = hash;
-    }
-
-    public String getRecaptchaHash() {
-        return this.mRecaptchaHash;
-    }
-
-    public void setCaptchaAnswer(String captchaAnswer) {
-        this.mCaptchaAnswer = captchaAnswer;
-    }
-
-    public String getCaptchaKey() {
-        return this.mCaptcha != null ? this.mCaptcha.getKey() : null;
-    }
-
-    public String getCaptchaAnswer() {
-        return this.mCaptchaAnswer;
-    }
-
-    public CaptchaType getCaptchaType() {
-        return this.mCaptcha != null ? this.mCaptcha.getCaptchaType() : null;
+    public PostingCaptcha getCaptcha() {
+        return mCaptcha;
     }
 
     public void setComment(String comment) {

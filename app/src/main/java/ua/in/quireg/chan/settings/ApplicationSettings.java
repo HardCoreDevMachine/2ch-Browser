@@ -21,7 +21,6 @@ import ua.in.quireg.chan.common.Constants;
 import ua.in.quireg.chan.common.utils.StringUtils;
 import ua.in.quireg.chan.common.utils.UriUtils;
 import ua.in.quireg.chan.models.domain.BoardModel;
-import ua.in.quireg.chan.models.domain.CaptchaType;
 import ua.in.quireg.chan.services.SerializationService;
 
 public class ApplicationSettings {
@@ -354,10 +353,6 @@ public class ApplicationSettings {
         return R.style.Theme_Photon_13;
     }
 
-    public CaptchaType getCaptchaType() {
-        // sometimes users can choose more than 1 captcha type, so I will leave it in settings
-        return CaptchaType.DVACH;
-    }
 
 
     public boolean isSwipeToRefresh() {

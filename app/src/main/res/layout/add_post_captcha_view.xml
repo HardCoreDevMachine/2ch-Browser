@@ -50,13 +50,12 @@
             android:src="?iconRefresh" />
     </LinearLayout>
 
-    <EditText
-        android:id="@+id/addpost_captcha_input"
+    <GridLayout
+        android:id="@+id/addpost_captcha_keyboard"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:hint="@string/addpost_captcha_hint"
-        android:imeOptions="flagNoExtractUi|flagNoFullscreen|actionSend"
-        android:inputType="textNoSuggestions"
-        android:singleLine="true" />
+        android:columnCount="3"
+        android:useDefaultMargins="true"
+        android:visibility="gone" />
 
 </LinearLayout>

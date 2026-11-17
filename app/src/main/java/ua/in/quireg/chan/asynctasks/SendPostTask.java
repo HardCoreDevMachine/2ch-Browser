@@ -3,7 +3,6 @@ package ua.in.quireg.chan.asynctasks;
 import android.os.AsyncTask;
 
 import ua.in.quireg.chan.common.Factory;
-import ua.in.quireg.chan.interfaces.ICaptchaView;
 import ua.in.quireg.chan.interfaces.IPostSendView;
 import ua.in.quireg.chan.interfaces.IWebsite;
 import ua.in.quireg.chan.models.domain.SendPostModel;
@@ -14,17 +13,14 @@ public class SendPostTask extends AsyncTask<Void, Long, SendPostResult> {
 
     private final PostSender mPostSender = Factory.resolve(PostSender.class);
     private final IPostSendView mView;
-    private final ICaptchaView mCaptchaView;
 
     private final IWebsite mWebsite;
     private final String mBoardName;
     private final String mThreadNumber;
     private final SendPostModel mEntity;
 
-    public SendPostTask(IPostSendView view, ICaptchaView captchaView, IWebsite website, String boardName, String threadNumber, SendPostModel entity) {
+    public SendPostTask(IPostSendView view, IWebsite website, String boardName, String threadNumber, SendPostModel entity) {
         this.mView = view;
-        this.mCaptchaView = captchaView;
-
         this.mWebsite = website;
         this.mBoardName = boardName;
         this.mThreadNumber = threadNumber;
@@ -48,7 +44,7 @@ public class SendPostTask extends AsyncTask<Void, Long, SendPostResult> {
         if (result.isSuccess) {
             this.mView.showSuccess(result.location);
         } else {
-            this.mView.showError(result.error, result.isRecaptcha);
+            this.mView.showError(result.error, result.isRecaptcha, result.errorCode);
         }
     }
 }
