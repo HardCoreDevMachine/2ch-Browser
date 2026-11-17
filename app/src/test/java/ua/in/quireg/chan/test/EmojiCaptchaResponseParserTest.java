@@ -10,9 +10,9 @@ public class EmojiCaptchaResponseParserTest extends InstrumentationTestCase {
     private final EmojiCaptchaResponseParser mParser = new EmojiCaptchaResponseParser();
 
     public void testParsesEmojiChallengeId() throws Exception {
-        CaptchaApiResponse response = mParser.parseCaptcha("{\"result\":1,\"type\":\"emoji_captcha\",\"id\":\"token\"}");
+        CaptchaApiResponse response = mParser.parseCaptcha("{\"challenge\":{\"hash\":\"h\",\"limit\":20000,\"template\":\"t%d\"},\"id\":\"token\",\"input\":\"emoji\",\"result\":1,\"type\":\"emoji\"}");
 
-        assertEquals("emoji_captcha", response.type);
+        assertEquals("emoji", response.type);
         assertEquals("token", response.id);
     }
 

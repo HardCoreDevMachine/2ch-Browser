@@ -4,7 +4,7 @@ import ua.in.quireg.chan.common.utils.StringUtils;
 
 public final class PostingCaptcha {
     public enum Type {
-        EMOJI_CAPTCHA("emoji_captcha"),
+        EMOJI_CAPTCHA("emoji"),
         PASSCODE("passcode"),
         NO_CAPTCHA("nocaptcha");
 

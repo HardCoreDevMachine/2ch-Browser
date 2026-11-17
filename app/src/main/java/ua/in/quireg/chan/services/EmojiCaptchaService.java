@@ -26,7 +26,7 @@ import ua.in.quireg.chan.models.domain.PostingCaptcha;
 import ua.in.quireg.chan.services.http.HttpStringReader;
 
 public class EmojiCaptchaService {
-    private static final String CAPTCHA_TYPE_EMOJI = "emoji_captcha";
+    private static final String CAPTCHA_TYPE_EMOJI = "emoji";
     private static final String CAPTCHA_TYPE_PASSCODE = "passcode";
     private static final String CAPTCHA_TYPE_NO_CAPTCHA = "nocaptcha";
 

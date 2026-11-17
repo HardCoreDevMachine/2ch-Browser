@@ -24,7 +24,7 @@ public class MakabaSendPostMapperTest extends InstrumentationTestCase {
         String body = output.toString("UTF-8");
 
         assertTrue(body.contains("name=\"captcha_type\""));
-        assertTrue(body.contains("emoji_captcha"));
+        assertTrue(body.contains("\r\n\r\nemoji\r\n"));
         assertTrue(body.contains("name=\"emoji_captcha_id\""));
         assertTrue(body.contains("emoji-solution"));
         assertFalse(body.contains("2chaptcha"));
