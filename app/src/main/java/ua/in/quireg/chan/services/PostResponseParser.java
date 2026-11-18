@@ -14,10 +14,21 @@ public class PostResponseParser {
         SendPostResult result = new SendPostResult();
         try {
             PostingResponse response = mMapper.readValue(responseText, PostingResponse.class);
+            if (response == null) {
+                result.error = "Сервер не подтвердил отправку: пустой ответ.";
+                return result;
+            }
             ApiError error = response.error;
             if (error != null && error.code != 0) {
-                result.error = StringUtils.emptyIfNull(error.message);
+                result.error = StringUtils.isEmpty(error.message)
+                        ? "Ошибка отправки: " + error.code
+                        : error.message;
                 result.errorCode = error.code;
+                return result;
+            }
+            if (response.result != 1 || (response.num <= 0 && response.thread <= 0)) {
+                result.error = "Сервер не подтвердил отправку: result=" + response.result
+                        + ", num=" + response.num + ", thread=" + response.thread + ".";
                 return result;
             }
             result.isSuccess = true;

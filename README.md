@@ -26,6 +26,14 @@ IntelliJ IDEA / Android Studio:
 
 
 
+## Posting acknowledgement
+
+The client reports a successful submission only when `/user/posting` returns
+HTTP 200 with `result: 1` and a positive `num` (reply) or `thread` (new thread).
+Redirects and JSON without that acknowledgement leave the compose form open
+and show an error. An acknowledgement does not independently verify that the
+post is visible after moderation or in a cached thread listing.
+
 ## License
 
 [MIT License][license]

@@ -89,13 +89,6 @@ public class PostSender {
                 }
             }
 
-            // Вернуть ссылку на тред после успешной отправки и редиректа
-            if (statusCode == 302 || statusCode == 303) {
-                result.isSuccess = true;
-                result.location = ExtendedHttpClient.getLocationHeader(response);
-                return result;
-            }
-
             if (statusCode != 200) {
                 throw new Exception(statusCode + " - " + response.getStatusLine().getReasonPhrase());
             }
@@ -115,8 +108,7 @@ public class PostSender {
     }
 
     private HttpResponse executeHttpPost(String boardName, HttpPost httpPost, SendPostModel postModel, String referer) {
-        // Редирект-коды я обработаю самостоятельно путем парсинга и возврата
-        // заголовка Location
+        // /user/posting must acknowledge publication in JSON, not via a redirect.
         HttpClientParams.setRedirecting(httpPost.getParams(), false);
         HttpResponse response = null;
         try {
