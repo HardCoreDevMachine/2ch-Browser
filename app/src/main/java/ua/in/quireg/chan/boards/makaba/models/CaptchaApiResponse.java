@@ -11,4 +11,15 @@ public class CaptchaApiResponse {
     public String type;
     @JsonProperty("id")
     public String id;
+    @JsonProperty("challenge")
+    public Challenge challenge;
+
+    public static class Challenge {
+        @JsonProperty("hash")
+        public String hash;
+        @JsonProperty("limit")
+        public int limit;
+        @JsonProperty("template")
+        public String template;
+    }
 }

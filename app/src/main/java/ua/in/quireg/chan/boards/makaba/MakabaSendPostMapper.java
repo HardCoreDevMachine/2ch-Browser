@@ -23,6 +23,7 @@ public class MakabaSendPostMapper {
     private static final String SUBJECT = "subject";
     private static final String CAPTCHA_TYPE = "captcha_type";
     private static final String EMOJI_CAPTCHA_ID = "emoji_captcha_id";
+    private static final String CHALLENGE = "2ch_challenge";
     private static final String FILE = "file[]";
 
     public HttpEntity mapModelToHttpEntity(String boardName, SendPostModel model) {
@@ -39,6 +40,7 @@ public class MakabaSendPostMapper {
         addStringValue(body, CAPTCHA_TYPE, captcha.getType().getApiValue());
         if (captcha.getType() == PostingCaptcha.Type.EMOJI_CAPTCHA) {
             addStringValue(body, EMOJI_CAPTCHA_ID, captcha.getEmojiCaptchaId());
+            addStringValue(body, CHALLENGE, captcha.getChallengeNonce());
         }
 
         addStringValue(body, SUBJECT, model.getSubject());

@@ -5,6 +5,7 @@ import android.os.AsyncTask;
 import ua.in.quireg.chan.common.Factory;
 import ua.in.quireg.chan.interfaces.IWebsite;
 import ua.in.quireg.chan.models.domain.CaptchaStep;
+import ua.in.quireg.chan.models.domain.EmojiCaptcha;
 import ua.in.quireg.chan.services.EmojiCaptchaService;
 
 public class EmojiCaptchaTask extends AsyncTask<Void, Void, CaptchaStep> {
@@ -16,7 +17,7 @@ public class EmojiCaptchaTask extends AsyncTask<Void, Void, CaptchaStep> {
     private final IWebsite mWebsite;
     private final String mBoard;
     private final String mThread;
-    private final String mTokenId;
+    private final EmojiCaptcha mCaptcha;
     private final int mEmojiNumber;
     private final Listener mListener;
 
@@ -24,25 +25,25 @@ public class EmojiCaptchaTask extends AsyncTask<Void, Void, CaptchaStep> {
         mWebsite = website;
         mBoard = board;
         mThread = thread;
-        mTokenId = null;
+        mCaptcha = null;
         mEmojiNumber = -1;
         mListener = listener;
     }
 
-    public EmojiCaptchaTask(IWebsite website, String tokenId, int emojiNumber, Listener listener) {
+    public EmojiCaptchaTask(IWebsite website, EmojiCaptcha captcha, int emojiNumber, Listener listener) {
         mWebsite = website;
         mBoard = null;
         mThread = null;
-        mTokenId = tokenId;
+        mCaptcha = captcha;
         mEmojiNumber = emojiNumber;
         mListener = listener;
     }
 
     @Override
     protected CaptchaStep doInBackground(Void... params) {
-        return mTokenId == null
+        return mCaptcha == null
                 ? mService.load(mWebsite, mBoard, mThread)
-                : mService.click(mWebsite, mTokenId, mEmojiNumber);
+                : mService.click(mWebsite, mCaptcha, mEmojiNumber);
     }
 
     @Override

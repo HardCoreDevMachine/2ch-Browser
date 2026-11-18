@@ -53,7 +53,7 @@ public class EmojiCaptchaService {
                 if (StringUtils.isEmpty(response.id)) {
                     return new CaptchaStep.Error("Captcha response does not contain an ID");
                 }
-                return loadChallenge(website, response.id);
+                return loadChallenge(website, response.id, solveChallenge(response.challenge));
             }
             if (CAPTCHA_TYPE_PASSCODE.equals(response.type)) {
                 return new CaptchaStep.Ready(PostingCaptcha.passcode());
@@ -67,30 +67,36 @@ public class EmojiCaptchaService {
         }
     }
 
-    public CaptchaStep click(IWebsite website, String tokenId, int emojiNumber) {
-        if (StringUtils.isEmpty(tokenId) || emojiNumber < 0) {
+    public CaptchaStep click(IWebsite website, EmojiCaptcha captcha, int emojiNumber) {
+        if (captcha == null || emojiNumber < 0) {
             return new CaptchaStep.Error("Invalid emoji captcha selection");
         }
         try {
-            EmojiCaptchaShowResponse response = mResponseParser.parseShow(postClick(website, tokenId, emojiNumber));
-            return toStep(tokenId, response);
+            EmojiCaptchaShowResponse response = mResponseParser.parseShow(postClick(website, captcha.getTokenId(), emojiNumber));
+            return toStep(captcha.getTokenId(), captcha.getChallengeNonce(), response);
         } catch (Exception e) {
             return new CaptchaStep.Error(errorMessage(e));
         }
     }
 
-    private CaptchaStep loadChallenge(IWebsite website, String tokenId) throws Exception {
+    private CaptchaStep loadChallenge(IWebsite website, String tokenId, String challengeNonce) throws Exception {
         Uri uri = Uri.parse(website.getUrlBuilder().makeAbsolute("api/captcha/emoji/show"))
                 .buildUpon()
                 .appendQueryParameter("id", tokenId)
                 .build();
         EmojiCaptchaShowResponse response = mResponseParser.parseShow(mHttpStringReader.fromUri(uri.toString()));
-        return toStep(tokenId, response);
+        return toStep(tokenId, challengeNonce, response);
     }
 
-    private CaptchaStep toStep(String tokenId, EmojiCaptchaShowResponse response) {
+    private static String solveChallenge(CaptchaApiResponse.Challenge challenge) {
+        return challenge == null
+                ? null
+                : ChallengeSolver.solve(challenge.hash, challenge.template, challenge.limit);
+    }
+
+    private CaptchaStep toStep(String tokenId, String challengeNonce, EmojiCaptchaShowResponse response) {
         if (!StringUtils.isEmpty(response.success)) {
-            return new CaptchaStep.Ready(PostingCaptcha.emoji(response.success));
+            return new CaptchaStep.Ready(PostingCaptcha.emoji(response.success, challengeNonce));
         }
         if (StringUtils.isEmpty(response.image) || response.keyboard == null || response.keyboard.length == 0) {
             return new CaptchaStep.Error("Invalid emoji captcha challenge");
@@ -101,7 +107,7 @@ public class EmojiCaptchaService {
             for (String key : response.keyboard) {
                 keyboard.add(decode(key));
             }
-            return new CaptchaStep.EmojiChallenge(new EmojiCaptcha(tokenId, image, keyboard));
+            return new CaptchaStep.EmojiChallenge(new EmojiCaptcha(tokenId, challengeNonce, image, keyboard));
         } catch (Exception e) {
             return new CaptchaStep.Error(errorMessage(e));
         }

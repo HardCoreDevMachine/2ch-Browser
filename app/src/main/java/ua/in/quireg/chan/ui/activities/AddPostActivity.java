@@ -445,7 +445,7 @@ public class AddPostActivity extends Activity implements IPostSendView {
         if (mCurrentEmojiCaptchaTask != null) {
             mCurrentEmojiCaptchaTask.cancel(true);
         }
-        mCurrentEmojiCaptchaTask = new EmojiCaptchaTask(mWebsite, mEmojiCaptcha.getTokenId(), emojiNumber, this::showCaptchaStep);
+        mCurrentEmojiCaptchaTask = new EmojiCaptchaTask(mWebsite, mEmojiCaptcha, emojiNumber, this::showCaptchaStep);
         mCurrentEmojiCaptchaTask.execute();
     }
 

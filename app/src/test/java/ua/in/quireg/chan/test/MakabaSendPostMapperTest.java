@@ -14,7 +14,7 @@ import ua.in.quireg.chan.models.domain.SendPostModel;
 public class MakabaSendPostMapperTest extends InstrumentationTestCase {
     public void testMapsEmojiCaptchaForModernPostingEndpoint() throws Exception {
         SendPostModel model = new SendPostModel(
-                PostingCaptcha.emoji("emoji-solution"), "comment", false,
+                PostingCaptcha.emoji("emoji-solution", "8594"), "comment", false,
                 new ArrayList<>(), null, null, null);
         model.setParentThread("123");
 
@@ -24,7 +24,9 @@ public class MakabaSendPostMapperTest extends InstrumentationTestCase {
         String body = output.toString("UTF-8");
 
         assertTrue(body.contains("name=\"captcha_type\""));
-        assertTrue(body.contains("\r\n\r\nemoji\r\n"));
+        assertTrue(body.contains("\r\n\r\nemoji_captcha\r\n"));
+        assertTrue(body.contains("name=\"2ch_challenge\""));
+        assertTrue(body.contains("\r\n\r\n8594\r\n"));
         assertTrue(body.contains("name=\"emoji_captcha_id\""));
         assertTrue(body.contains("emoji-solution"));
         assertFalse(body.contains("2chaptcha"));

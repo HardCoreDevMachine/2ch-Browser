@@ -11,6 +11,8 @@ public class EmojiCaptchaResponseParserTest extends InstrumentationTestCase {
 
     public void testParsesEmojiChallengeId() throws Exception {
         CaptchaApiResponse response = mParser.parseCaptcha("{\"challenge\":{\"hash\":\"h\",\"limit\":20000,\"template\":\"t%d\"},\"id\":\"token\",\"input\":\"emoji\",\"result\":1,\"type\":\"emoji\"}");
+        assertEquals("t%d", response.challenge.template);
+        assertEquals(20000, response.challenge.limit);
 
         assertEquals("emoji", response.type);
         assertEquals("token", response.id);
