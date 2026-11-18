@@ -6,11 +6,11 @@ import android.os.AsyncTask;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.cookie.Cookie;
-import org.apache.http.entity.mime.HttpMultipartMode;
-import org.apache.http.entity.mime.MultipartEntity;
-import org.apache.http.entity.mime.content.StringBody;
 import org.apache.http.impl.client.DefaultHttpClient;
+
+import okhttp3.MultipartBody;
 import ua.in.quireg.chan.common.library.ExtendedObjectMapper;
+import ua.in.quireg.chan.services.http.MultipartHttpEntity;
 
 import ua.in.quireg.chan.boards.makaba.models.ApiError;
 import ua.in.quireg.chan.boards.makaba.models.CaptchaApiResponse;
@@ -57,9 +57,10 @@ public class CheckPasscodeTask extends AsyncTask<Void, Void, String> {
         try {
             String url = mWebsite.getUrlBuilder().getPasscodeCheckUrl();
             post = new HttpPost(url);
-            MultipartEntity entity = new MultipartEntity(HttpMultipartMode.BROWSER_COMPATIBLE, Constants.MULTIPART_BOUNDARY, Constants.UTF8_CHARSET);
-            entity.addPart("passcode", new StringBody(mPasscode, Constants.UTF8_CHARSET));
-            post.setEntity(entity);
+            post.setEntity(new MultipartHttpEntity(new MultipartBody.Builder(Constants.MULTIPART_BOUNDARY)
+                    .setType(MultipartBody.FORM)
+                    .addFormDataPart("passcode", mPasscode)
+                    .build()));
 
             response = mHttpClient.execute(post);
             if (response.getStatusLine().getStatusCode() != 200) {

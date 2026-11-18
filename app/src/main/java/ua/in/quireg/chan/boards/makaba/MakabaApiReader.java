@@ -1,11 +1,8 @@
 package ua.in.quireg.chan.boards.makaba;
 
-import java.io.UnsupportedEncodingException;
-
-import org.apache.http.entity.mime.HttpMultipartMode;
-import org.apache.http.entity.mime.MultipartEntity;
-import org.apache.http.entity.mime.content.StringBody;
 import org.codehaus.jackson.JsonNode;
+
+import okhttp3.MultipartBody;
 
 import android.content.res.Resources;
 
@@ -31,6 +28,7 @@ import ua.in.quireg.chan.models.domain.SearchPostListModel;
 import ua.in.quireg.chan.models.domain.ThreadModel;
 import ua.in.quireg.chan.services.IconsList;
 import ua.in.quireg.chan.services.http.JsonHttpReader;
+import ua.in.quireg.chan.services.http.MultipartHttpEntity;
 import ua.in.quireg.chan.settings.ApplicationSettings;
 
 public class MakabaApiReader implements IJsonApiReader {
@@ -130,16 +128,13 @@ public class MakabaApiReader implements IJsonApiReader {
             throws JsonApiReaderException, HtmlNotJsonException {
         String uri = this.mMakabaUriBuilder.getSearchUrlApi();
 
-        MultipartEntity entity = new MultipartEntity(HttpMultipartMode.BROWSER_COMPATIBLE,
-                Constants.MULTIPART_BOUNDARY, Constants.UTF8_CHARSET);
-        try {
-            entity.addPart("task", new StringBody("search", Constants.UTF8_CHARSET));
-            entity.addPart("board", new StringBody(boardName, Constants.UTF8_CHARSET));
-            entity.addPart("find", new StringBody(searchQuery, Constants.UTF8_CHARSET));
-            entity.addPart("json", new StringBody("1", Constants.UTF8_CHARSET));
-        } catch (UnsupportedEncodingException e) {
-            MyLog.e(TAG, e);
-        }
+        MultipartHttpEntity entity = new MultipartHttpEntity(new MultipartBody.Builder(Constants.MULTIPART_BOUNDARY)
+                .setType(MultipartBody.FORM)
+                .addFormDataPart("task", "search")
+                .addFormDataPart("board", boardName)
+                .addFormDataPart("find", searchQuery)
+                .addFormDataPart("json", "1")
+                .build());
 
         JsonNode json = this.mJsonReader.postData(uri, listener, task, entity);
         if (json == null) {
