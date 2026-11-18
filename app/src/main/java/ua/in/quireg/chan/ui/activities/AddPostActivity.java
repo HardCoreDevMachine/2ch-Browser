@@ -411,9 +411,19 @@ public class AddPostActivity extends Activity implements IPostSendView {
         mEmojiCaptcha = null;
         mCaptchaImageView.setVisibility(View.GONE);
         mCaptchaKeyboard.setVisibility(View.GONE);
-        mCaptchaInfoView.setText(captcha.getType() == PostingCaptcha.Type.PASSCODE
-                ? R.string.addpost_captcha_can_skip_passcode
-                : R.string.addpost_captcha_can_skip);
+        int message;
+        switch (captcha.getType()) {
+            case EMOJI_CAPTCHA:
+                message = R.string.addpost_captcha_solved;
+                break;
+            case PASSCODE:
+                message = R.string.addpost_captcha_can_skip_passcode;
+                break;
+            default:
+                message = R.string.addpost_captcha_can_skip;
+                break;
+        }
+        mCaptchaInfoView.setText(message);
         mCaptchaInfoView.setVisibility(View.VISIBLE);
     }
 

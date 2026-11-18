@@ -17,6 +17,7 @@
     <string name="addpost_captcha_can_skip">Без кода подтверждения</string>
     <string name="addpost_captcha_can_skip_passcode">У вас введен пасс-код</string>
     <string name="addpost_captcha_solve_emoji">Решите emoji-капчу перед отправкой</string>
+    <string name="addpost_captcha_solved">Капча решена</string>
     <string name="addpost_captcha_emoji_number">Эмодзи %1$d</string>
     <string name="addpost_send_button">Отправить</string>
     <string name="addpost_refresh_button">Обновить</string>
