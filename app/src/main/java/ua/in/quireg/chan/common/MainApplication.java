@@ -89,11 +89,10 @@ public class MainApplication extends Application {
             return;
         }
 
+        ACRA.init(this);
         if (Constants.LOGGING) {
             LeakCanary.install(this);
             Timber.plant(new Timber.DebugTree());
-        } else {
-            ACRA.init(this);
         }
         mBaseComponent = buildBaseComponent();
         mAppComponent = buildAppComponent();
