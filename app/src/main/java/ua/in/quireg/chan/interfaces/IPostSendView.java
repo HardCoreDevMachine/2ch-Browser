@@ -1,10 +1,10 @@
 package ua.in.quireg.chan.interfaces;
 
+import ua.in.quireg.chan.models.domain.SendPostResult;
+
 public interface IPostSendView {
 
-    void showSuccess(String redirectedPage);
-
-    void showError(String error, boolean isRecaptcha, int errorCode);
+    void showPostResult(SendPostResult result);
 
     void showPostLoading();
 

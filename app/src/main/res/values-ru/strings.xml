@@ -21,6 +21,10 @@
     <string name="addpost_captcha_emoji_number">Эмодзи %1$d</string>
     <string name="addpost_send_button">Отправить</string>
     <string name="addpost_refresh_button">Обновить</string>
+    <string name="addpost_post_accepted_message">Сервер подтвердил сообщение №%1$s, но приложению не удалось загрузить его для проверки. Не отправляйте сообщение повторно - оно уже опубликовано.</string>
+    <string name="addpost_post_accepted_message_no_number">Сервер подтвердил сообщение, но приложению не удалось загрузить его для проверки. Не отправляйте сообщение повторно - оно уже опубликовано.</string>
+    <string name="addpost_post_accepted_open">Открыть пост</string>
+    <string name="addpost_diagnostics_copy">Копировать диагностику</string>
     <string name="pick_board_input_hint">Код форума</string>
     <string name="pick_board_button">Go</string>
     <string name="pick_board_title">Форумы</string>
@@ -270,6 +274,8 @@
 
     <!-- Errors -->
     <string name="error_send_post">При отправке сообщения произошла ошибка.</string>
+    <string name="error_send_post_unknown">Не удалось определить, было ли отправлено сообщение. Проверьте тред перед повторной отправкой, чтобы не создать дубликат. Черновик сохранён.</string>
+    <string name="error_refresh_after_posting">Сообщение №%1$s отправлено, но тред не удалось обновить.</string>
     <string name="error_download_data">Невозможно открыть страницу.</string>
     <string name="error_unknown">Произошла неизвестная ошибка.</string>
     <string name="error_incorrect_argument">Неправильно передан параметр функции.</string>
@@ -306,7 +312,8 @@
     <string name="warning_maximum_attachments">Невозможно прикрепить больше файлов.</string>
     
     <!-- Notifications -->
-    <string name="notification_send_post_success">Сообщение успешно отправлено</string>
+    <string name="notification_post_created">Сообщение №%1$s создано</string>
+    <string name="notification_sent_post_not_in_thread">Сообщение №%1$s принято сервером, но не появилось после обновления треда. Попробуйте обновить ещё раз.</string>
     <string name="notification_no_new_posts">Нет новых сообщений</string>
     <string name="notification_save_image_started">Файл будет сохранен в %1$s</string>
     <string name="notification_post_not_found">Сообщение не найдено</string>

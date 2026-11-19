@@ -11,8 +11,10 @@ public class AllTests {
         suite.addTestSuite(UriUtilsTest.class);
         suite.addTestSuite(AttachmentInfoTest.class);
         suite.addTestSuite(PostResponseParserTest.class);
+        suite.addTestSuite(ApiErrorTest.class);
         suite.addTestSuite(EmojiCaptchaResponseParserTest.class);
         suite.addTestSuite(MakabaSendPostMapperTest.class);
+        suite.addTestSuite(PostSenderIntegrationTest.class);
         suite.addTestSuite(HtmlUtilsTest.class);
         suite.addTestSuite(ThreadPostUtilsTest.class);
         //$JUnit-END$

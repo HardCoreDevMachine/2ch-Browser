@@ -43,7 +43,7 @@ public class EmojiCaptchaTask extends AsyncTask<Void, Void, CaptchaStep> {
     protected CaptchaStep doInBackground(Void... params) {
         return mCaptcha == null
                 ? mService.load(mWebsite, mBoard, mThread)
-                : mService.click(mWebsite, mCaptcha, mEmojiNumber);
+                : mService.click(mCaptcha, mEmojiNumber);
     }
 
     @Override

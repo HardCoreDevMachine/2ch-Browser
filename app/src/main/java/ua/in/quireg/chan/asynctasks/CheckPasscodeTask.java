@@ -73,7 +73,7 @@ public class CheckPasscodeTask extends AsyncTask<Void, Void, String> {
                     CaptchaApiResponse.class);
             ApiError error = apiResponse.error;
             if (error != null && error.code != 0) {
-                mErrorMessage = error.message;
+                mErrorMessage = error.getMessage();
                 return null;
             }
 

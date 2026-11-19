@@ -28,11 +28,30 @@ IntelliJ IDEA / Android Studio:
 
 ## Posting acknowledgement
 
-The client reports a successful submission only when `/user/posting` returns
-HTTP 200 with `result: 1` and a positive `num` (reply) or `thread` (new thread).
-Redirects and JSON without that acknowledgement leave the compose form open
-and show an error. An acknowledgement does not independently verify that the
-post is visible after moderation or in a cached thread listing.
+Posting follows the sanitized successful `2ch.su.har` request: `/user/posting?nc=1`,
+`task=post`, AJAX JSON headers, `captcha_type=emoji_captcha`, `emoji_captcha_id`
+and the `2ch_challenge` nonce. Captcha requests stay on their original origin;
+changing the configured domain requires refreshing the captcha before posting.
+The existing HTTP client and its cookie store are retained.
+
+The response must acknowledge the requested operation with `result: 1` and a
+positive `num` (reply) or `thread` (new thread). The client retains those IDs and
+performs one uncached `/api/mobile/v2/post/{board}/{num}` read-back. Only a matching
+board, post number and parent confirms visibility. Failed read-back does not
+erase the acknowledgement or resend the post: the UI offers to open the thread.
+After returning to the thread, a full uncached reload targets the created post.
+
+POST requests are not automatically retried. A lost response is an unknown
+outcome, not proof that no post was created. API errors use the server message,
+or the `api.yml` ErrorCode description when that message is missing. Non-success
+dialogs can copy protocol diagnostics without adb: endpoint, status, result,
+error codes and post/thread IDs, never comments, files, cookies or captcha tokens.
+
+Regression coverage includes parser/error mapping and `PostSenderIntegrationTest`,
+which exercises the production sender against a local TCP HTTP fixture, including
+lost responses, redirects, attachments and read-back failures. The HAR-derived
+fixture in `app/src/test/resources/posting/har-success.json` contains no live tokens.
+Local protocol tests do not substitute for an on-device publication/read-back check.
 
 ## License
 

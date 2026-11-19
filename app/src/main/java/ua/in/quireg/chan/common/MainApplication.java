@@ -142,7 +142,7 @@ public class MainApplication extends Application {
         container.register(HttpBitmapReader.class, httpBitmapReader);
         container.register(JsonHttpReader.class, jsonApiReader);
         container.register(PostSender.class,
-                new PostSender(httpClient, getResources(), httpStringReader));
+                new PostSender(httpClient, httpStringReader, mSettings));
         container.register(DraftPostsStorage.class, new DraftPostsStorage());
         container.register(OpenTabsManager.class, new OpenTabsManager());
         container.register(CacheDirectoryManager.class, cacheManager);

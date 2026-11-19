@@ -34,8 +34,9 @@ public class MakabaSendPostMapper {
 
         MultipartBody.Builder body = new MultipartBody.Builder(Constants.MULTIPART_BOUNDARY)
                 .setType(MultipartBody.FORM);
+        addStringValue(body, "task", "post");
         addStringValue(body, BOARD, boardName);
-        addStringValue(body, THREAD, model.getParentThread());
+        addStringValue(body, THREAD, StringUtils.nullIfEmpty(model.getParentThread()));
         addStringValue(body, COMMENT, StringUtils.emptyIfNull(model.getComment()));
         addStringValue(body, CAPTCHA_TYPE, captcha.getType().getApiValue());
         if (captcha.getType() == PostingCaptcha.Type.EMOJI_CAPTCHA) {

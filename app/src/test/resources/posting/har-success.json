@@ -1,0 +1,19 @@
+{
+  "source": "2ch.su.har, entry 55; captcha token and comment replaced, browser fingerprints omitted",
+  "method": "POST",
+  "path": "/user/posting?nc=1",
+  "headers": {
+    "Accept": "application/json, text/javascript, */*; q=0.01",
+    "X-Requested-With": "XMLHttpRequest"
+  },
+  "fields": {
+    "task": "post",
+    "board": "test",
+    "thread": "251491",
+    "captcha_type": "emoji_captcha",
+    "emoji_captcha_id": "fixture-solution-not-a-real-token",
+    "2ch_challenge": "6904",
+    "comment": "fixture-comment"
+  },
+  "response": {"num": 256354, "result": 1}
+}

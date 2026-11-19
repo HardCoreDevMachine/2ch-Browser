@@ -16,21 +16,18 @@ public class SendPostTask extends AsyncTask<Void, Long, SendPostResult> {
 
     private final IWebsite mWebsite;
     private final String mBoardName;
-    private final String mThreadNumber;
     private final SendPostModel mEntity;
 
-    public SendPostTask(IPostSendView view, IWebsite website, String boardName, String threadNumber, SendPostModel entity) {
+    public SendPostTask(IPostSendView view, IWebsite website, String boardName, SendPostModel entity) {
         this.mView = view;
         this.mWebsite = website;
         this.mBoardName = boardName;
-        this.mThreadNumber = threadNumber;
         this.mEntity = entity;
     }
 
     @Override
     protected SendPostResult doInBackground(Void... args) {
-        SendPostResult result = this.mPostSender.sendPost(this.mWebsite, this.mBoardName, this.mEntity);
-        return result;
+        return this.mPostSender.sendPost(this.mWebsite, this.mBoardName, this.mEntity);
     }
 
     @Override
@@ -41,10 +38,6 @@ public class SendPostTask extends AsyncTask<Void, Long, SendPostResult> {
     @Override
     protected void onPostExecute(final SendPostResult result) {
         this.mView.hidePostLoading();
-        if (result.isSuccess) {
-            this.mView.showSuccess(result.location);
-        } else {
-            this.mView.showError(result.error, result.isRecaptcha, result.errorCode);
-        }
+        this.mView.showPostResult(result);
     }
 }

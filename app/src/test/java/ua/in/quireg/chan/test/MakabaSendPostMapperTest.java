@@ -1,6 +1,6 @@
 package ua.in.quireg.chan.test;
 
-import android.test.InstrumentationTestCase;
+import junit.framework.TestCase;
 
 import org.apache.http.HttpEntity;
 
@@ -11,10 +11,10 @@ import ua.in.quireg.chan.boards.makaba.MakabaSendPostMapper;
 import ua.in.quireg.chan.models.domain.PostingCaptcha;
 import ua.in.quireg.chan.models.domain.SendPostModel;
 
-public class MakabaSendPostMapperTest extends InstrumentationTestCase {
+public class MakabaSendPostMapperTest extends TestCase {
     public void testMapsEmojiCaptchaForModernPostingEndpoint() throws Exception {
         SendPostModel model = new SendPostModel(
-                PostingCaptcha.emoji("emoji-solution", "8594"), "comment", false,
+                PostingCaptcha.emoji("emoji-solution", "8594", "https://2ch.su"), "comment", false,
                 new ArrayList<>(), null, null, null);
         model.setParentThread("123");
 
@@ -31,12 +31,13 @@ public class MakabaSendPostMapperTest extends InstrumentationTestCase {
         assertTrue(body.contains("emoji-solution"));
         assertFalse(body.contains("2chaptcha"));
         assertFalse(body.contains("usercode"));
-        assertFalse(body.contains("name=\"task\""));
+        assertTrue(body.contains("name=\"task\""));
+        assertTrue(body.contains("\r\n\r\npost\r\n"));
     }
 
     public void testMapsNoCaptchaWithoutEmojiSolution() throws Exception {
         SendPostModel model = new SendPostModel(
-                PostingCaptcha.noCaptcha(), "comment", false,
+                PostingCaptcha.noCaptcha("https://2ch.su"), "comment", false,
                 new ArrayList<>(), null, null, null);
 
         HttpEntity entity = new MakabaSendPostMapper().mapModelToHttpEntity("b", model);

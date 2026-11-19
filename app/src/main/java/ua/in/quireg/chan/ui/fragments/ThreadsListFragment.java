@@ -309,18 +309,10 @@ public class ThreadsListFragment extends MvpAppCompatFragment
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent intent) {
         super.onActivityResult(requestCode, resultCode, intent);
-        if (resultCode == Activity.RESULT_OK) {
+        if (resultCode == Activity.RESULT_OK && intent != null) {
             switch (requestCode) {
                 case Constants.REQUEST_CODE_ADD_POST_ACTIVITY:
-                    // Получаем номер созданного треда и переходим к нему. Иначе
-                    // обновляем список тредов на всякий случай
-                    String redirectedThreadNumber =
-                            intent.getExtras().getString(Constants.EXTRA_REDIRECTED_THREAD_NUMBER);
-                    if (redirectedThreadNumber != null) {
-                        navigateToThread(redirectedThreadNumber);
-                    } else {
-                        refreshThreads(false);
-                    }
+                    PostsListFragment.openSentPost(mRouter, intent);
                     break;
             }
         }
@@ -404,16 +396,14 @@ public class ThreadsListFragment extends MvpAppCompatFragment
         addPostIntent.putExtra(Constants.EXTRA_BOARD_NAME, mBoardName);
         addPostIntent.putExtra(Constants.EXTRA_THREAD_NUMBER, threadNumber);
 
-        startActivity(addPostIntent);
+        // Start for result so a published reply navigates back to its thread.
+        startActivityForResult(addPostIntent, Constants.REQUEST_CODE_ADD_POST_ACTIVITY);
     }
 
     private void navigateToThread(String threadNumber) {
-        navigateToThread(threadNumber, null);
-    }
-
-    private void navigateToThread(String threadNumber, String threadSubject) {
-//        mRouter.navigateThread(mWebsite.name(), mBoardName, threadNumber, threadSubject, null, false);
-
+        // The existing navigation path supports targeting the thread only; the
+        // created post is its OP post, so no post number is passed.
+        mRouter.navigateThread(mBoardName, threadNumber, false);
     }
 
     private void navigateToCatalog() {

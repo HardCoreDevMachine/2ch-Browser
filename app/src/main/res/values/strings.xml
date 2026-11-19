@@ -23,6 +23,10 @@
     <string name="addpost_captcha_emoji_number">Emoji %1$d</string>
     <string name="addpost_send_button">Send</string>
     <string name="addpost_refresh_button">Refresh</string>
+    <string name="addpost_post_accepted_message">The server confirmed post №%1$s, but the app could not load it back to verify. Do not send the post again - it is already published.</string>
+    <string name="addpost_post_accepted_message_no_number">The server confirmed the post, but the app could not load it back to verify. Do not send the post again - it is already published.</string>
+    <string name="addpost_post_accepted_open">Open post</string>
+    <string name="addpost_diagnostics_copy">Copy diagnostics</string>
     <string name="pick_board_input_hint">Board code</string>
     <string name="pick_board_button">Go</string>
     <string name="pick_board_title">Pick board</string>
@@ -287,6 +291,8 @@
 
     <!-- Errors -->
     <string name="error_send_post">An error has occurred while sending the post.</string>
+    <string name="error_send_post_unknown">Could not determine whether the post was sent. Check the thread before sending again to avoid a duplicate. Your draft is preserved.</string>
+    <string name="error_refresh_after_posting">Post №%1$s was sent, but the thread could not be refreshed.</string>
     <string name="error_download_data">Unable to connect to the page.</string>
     <string name="error_unknown">An unknown error occurred.</string>
     <string name="error_incorrect_argument">The function argument is incorrect.</string>
@@ -323,7 +329,8 @@ If you want to be in read-only, post to /test/.
     <string name="warning_maximum_attachments">Cannot attach more files.</string>
 
     <!-- Notifications -->
-    <string name="notification_send_post_success">The post was sent successfully</string>
+    <string name="notification_post_created">Post №%1$s has been created</string>
+    <string name="notification_sent_post_not_in_thread">Post №%1$s was accepted by the server, but it did not appear after refreshing the thread. Try refreshing again.</string>
     <string name="notification_no_new_posts">No new posts</string>
     <string name="notification_save_image_started">The file will be saved to %1$s</string>
     <string name="notification_post_not_found">The post isn\'t found</string>

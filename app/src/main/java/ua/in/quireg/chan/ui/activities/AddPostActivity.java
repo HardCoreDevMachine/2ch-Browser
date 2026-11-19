@@ -1,6 +1,7 @@
 package ua.in.quireg.chan.ui.activities;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -41,18 +42,19 @@ import ua.in.quireg.chan.common.Constants;
 import ua.in.quireg.chan.common.Factory;
 import ua.in.quireg.chan.common.Websites;
 import ua.in.quireg.chan.common.utils.AppearanceUtils;
+import ua.in.quireg.chan.common.utils.CompatibilityUtils;
 import ua.in.quireg.chan.common.utils.IoUtils;
 import ua.in.quireg.chan.common.utils.StringUtils;
 import ua.in.quireg.chan.common.utils.ThreadPostUtils;
 import ua.in.quireg.chan.interfaces.ICloudflareCheckListener;
 import ua.in.quireg.chan.interfaces.IPostSendView;
 import ua.in.quireg.chan.interfaces.IUrlBuilder;
-import ua.in.quireg.chan.interfaces.IUrlParser;
 import ua.in.quireg.chan.interfaces.IWebsite;
 import ua.in.quireg.chan.models.domain.CaptchaStep;
 import ua.in.quireg.chan.models.domain.EmojiCaptcha;
 import ua.in.quireg.chan.models.domain.PostingCaptcha;
 import ua.in.quireg.chan.models.domain.SendPostModel;
+import ua.in.quireg.chan.models.domain.SendPostResult;
 import ua.in.quireg.chan.models.presentation.AddAttachmentViewBag;
 import ua.in.quireg.chan.models.presentation.DraftPostModel;
 import ua.in.quireg.chan.models.presentation.FileModel;
@@ -65,9 +67,11 @@ import ua.in.quireg.chan.settings.ApplicationSettings;
 
 public class AddPostActivity extends Activity implements IPostSendView {
 
+    public static final String EXTRA_SENT_POST_NUMBER = "ExtraSentPostNumber";
+    public static final String EXTRA_SENT_BOARD = "ExtraSentBoard";
+
     private final ApplicationSettings mSettings = Factory.resolve(ApplicationSettings.class);
     private final DraftPostsStorage mDraftPostsStorage = Factory.resolve(DraftPostsStorage.class);
-    private IUrlParser mUrlParser;
     private IUrlBuilder mUrlBuilder;
 
     private FileModel[] mAttachedFiles = new FileModel[4];
@@ -89,6 +93,7 @@ public class AddPostActivity extends Activity implements IPostSendView {
     private EditText mCommentView;
     private AddAttachmentViewBag[] mAttachmentViews = new AddAttachmentViewBag[4];
     private ProgressDialog mProgressDialog;
+    private AlertDialog mResultDialog;
     private Button mSendButton;
     private EditText mSubjectView;
     private Spinner mPoliticsView;
@@ -109,7 +114,6 @@ public class AddPostActivity extends Activity implements IPostSendView {
         mThreadNumber = extras.getString(Constants.EXTRA_THREAD_NUMBER);
 
         mUrlBuilder = mWebsite.getUrlBuilder();
-        mUrlParser = mWebsite.getUrlParser();
 
         resetUI();
 
@@ -158,8 +162,14 @@ public class AddPostActivity extends Activity implements IPostSendView {
 
     @Override
     protected void onDestroy() {
+        if (mCurrentEmojiCaptchaTask != null) {
+            mCurrentEmojiCaptchaTask.cancel(true);
+        }
         if (mProgressDialog != null) {
             mProgressDialog.dismiss();
+        }
+        if (mResultDialog != null) {
+            mResultDialog.dismiss();
         }
 
         super.onDestroy();
@@ -285,43 +295,104 @@ public class AddPostActivity extends Activity implements IPostSendView {
 
 
     private void sendPost(SendPostModel post) {
-        if (mCurrentPostSendTask != null) {
-            mCurrentPostSendTask.cancel(true);
+        if (mCurrentPostSendTask != null || mFinishedSuccessfully) {
+            // Never overlap sends or resend a post already acknowledged by the server.
+            return;
         }
-        mCurrentPostSendTask = new SendPostTask(this, mWebsite, mBoardName, mThreadNumber, post);
+        mCurrentPostSendTask = new SendPostTask(this, mWebsite, mBoardName, post);
         mCurrentPostSendTask.execute();
     }
 
     @Override
-    public void showSuccess(String redirectedPage) {
-        AppearanceUtils.showLongToast(this, getString(R.string.notification_send_post_success));
-        // return back to the list of posts
-        String redirectedThreadNumber = null;
-        if (redirectedPage != null) {
-            redirectedThreadNumber = mUrlParser.getThreadNumber(Uri.parse(redirectedPage));
+    public void showPostResult(SendPostResult result) {
+        if (result == null || isFinishing() || isDestroyed()) {
+            return;
         }
 
-        mFinishedSuccessfully = true;
-
-        // Завершаем с успешным результатом
-        Intent intent = new Intent();
-        intent.putExtra(Constants.EXTRA_REDIRECTED_THREAD_NUMBER, redirectedThreadNumber);
-        setResult(RESULT_OK, intent);
-        finish();
-    }
-
-    @Override
-    public void showError(String error, boolean isRecaptcha, int errorCode) {
-        error = error != null ? error : getString(R.string.error_send_post);
-        AppearanceUtils.showLongToast(this, error);
-
-        if (errorCode == -5) {
+        if (result.errorCode == -5) {
             refreshCaptcha();
         }
-
-        if (isRecaptcha || error.startsWith("503")) {
+        if (result.requiresCloudflare) {
             startCloudflareCheck();
         }
+
+        switch (result.state) {
+            case VERIFIED:
+                mFinishedSuccessfully = true;
+                AppearanceUtils.showLongToast(this,
+                        getString(R.string.notification_post_created, String.valueOf(result.postNumber)));
+                finishWithResult(result);
+                break;
+            case ACCEPTED:
+                // The server acknowledged the post: the draft must be dropped and
+                // the post must never be resent, even though the read-back failed.
+                mFinishedSuccessfully = true;
+                showAcceptedDialog(result);
+                break;
+            case REJECTED:
+                showResultDialog(
+                        !StringUtils.isEmpty(result.error) ? result.error : getString(R.string.error_send_post),
+                        result, null);
+                break;
+            case UNKNOWN:
+            default:
+                showResultDialog(getString(R.string.error_send_post_unknown), result, null);
+                break;
+        }
+    }
+
+    private void showAcceptedDialog(final SendPostResult result) {
+        String message = result.postNumber > 0
+                ? getString(R.string.addpost_post_accepted_message, String.valueOf(result.postNumber))
+                : getString(R.string.addpost_post_accepted_message_no_number);
+        showResultDialog(message, result, (dialog, which) -> finishWithResult(result));
+    }
+
+    /**
+     * Shows the user-facing outcome together with a button that copies the
+     * sanitized protocol metadata ({@link SendPostResult#getDiagnostics()}) to
+     * the clipboard. The user-facing message itself is never copied.
+     *
+     * @param onConfirm non-null makes the dialog non-cancelable and finishes the
+     *                  composer via this action (used for accepted posts)
+     */
+    private void showResultDialog(String message, final SendPostResult result,
+                                  android.content.DialogInterface.OnClickListener onConfirm) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this)
+                .setMessage(message)
+                .setNeutralButton(R.string.addpost_diagnostics_copy, null);
+        if (onConfirm != null) {
+            builder.setCancelable(false)
+                    .setPositiveButton(R.string.addpost_post_accepted_open, onConfirm);
+        } else {
+            builder.setPositiveButton(android.R.string.ok, null);
+        }
+
+        final AlertDialog dialog = builder.create();
+        mResultDialog = dialog;
+        dialog.show();
+        // Copy without dismissing, so an accepted post still requires the
+        // explicit "open post" action and cannot be silently closed + resent.
+        dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(v -> {
+            CompatibilityUtils.copyText(AddPostActivity.this,
+                    getString(R.string.addpost_diagnostics_copy), result.getDiagnostics());
+            AppearanceUtils.showLongToast(AddPostActivity.this, getString(R.string.notification_post_copied));
+        });
+    }
+
+    private void finishWithResult(SendPostResult result) {
+        Intent intent = new Intent();
+        if (result.threadNumber > 0) {
+            intent.putExtra(Constants.EXTRA_REDIRECTED_THREAD_NUMBER, String.valueOf(result.threadNumber));
+        }
+        if (result.postNumber > 0) {
+            intent.putExtra(EXTRA_SENT_POST_NUMBER, String.valueOf(result.postNumber));
+        }
+        if (!StringUtils.isEmpty(result.board)) {
+            intent.putExtra(EXTRA_SENT_BOARD, result.board);
+        }
+        setResult(RESULT_OK, intent);
+        finish();
     }
 
     private void startCloudflareCheck() {
@@ -347,16 +418,23 @@ public class AddPostActivity extends Activity implements IPostSendView {
         mProgressDialog = new ProgressDialog(this);
         mProgressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
         mProgressDialog.setMessage(getString(R.string.loading));
-        mProgressDialog.setCancelable(true);
+        mProgressDialog.setCancelable(false);
         mProgressDialog.setCanceledOnTouchOutside(false);
         mProgressDialog.show();
     }
 
     @Override
     public void hidePostLoading() {
-        mSendButton.setEnabled(true);
-        mProgressDialog.dismiss();
+        // Called exactly once from the task's onPostExecute: only now the send
+        // is truly finished and a new one may be started.
         mCurrentPostSendTask = null;
+        if (isFinishing() || isDestroyed()) {
+            return;
+        }
+        mSendButton.setEnabled(true);
+        if (mProgressDialog != null) {
+            mProgressDialog.dismiss();
+        }
     }
 
     private void showCaptchaLoading() {
@@ -369,6 +447,9 @@ public class AddPostActivity extends Activity implements IPostSendView {
     }
 
     private void showCaptchaStep(CaptchaStep step) {
+        if (isFinishing() || isDestroyed()) {
+            return;
+        }
         mCurrentEmojiCaptchaTask = null;
         mCaptchaStep = step;
         mCaptchaLoadingView.setVisibility(View.GONE);

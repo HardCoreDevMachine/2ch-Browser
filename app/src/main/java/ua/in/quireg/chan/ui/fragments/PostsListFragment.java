@@ -86,6 +86,7 @@ public class PostsListFragment extends BaseListFragment {
     private String mBoardName;
     private String mThreadNumber;
     private String mPostNumber;
+    private String mPendingSentPostNumber;
     private String pageSubject;
     private Menu mMenu;
 
@@ -101,6 +102,7 @@ public class PostsListFragment extends BaseListFragment {
 //        mBoardName = StringUtils.emptyIfNull(extras.getString(Constants.EXTRA_BOARD_NAME));
         mBoardName = "/b";
         mThreadNumber = StringUtils.emptyIfNull(extras.getString(Constants.EXTRA_THREAD_NUMBER));
+        mPendingSentPostNumber = extras.getString(AddPostActivity.EXTRA_SENT_POST_NUMBER);
         mPostNumber = StringUtils.emptyIfNull(extras.getString(Constants.EXTRA_POST_NUMBER));
         pageSubject = StringUtils.nullIfEmpty(extras.getString(Constants.EXTRA_THREAD_SUBJECT));
 
@@ -192,6 +194,11 @@ public class PostsListFragment extends BaseListFragment {
         mListView.setAdapter(mAdapter);
 
         mListView.setOnScrollListener(new ListViewScrollListener(mAdapter));
+
+        if (mPendingSentPostNumber != null) {
+            reloadThreadAfterPosting(mPendingSentPostNumber);
+            return;
+        }
 
         boolean preferDeserialized = getArguments().getBoolean(Constants.EXTRA_PREFER_DESERIALIZED)
                 || savedInstanceState != null && savedInstanceState.containsKey(Constants.EXTRA_PREFER_DESERIALIZED);
@@ -414,18 +421,111 @@ public class PostsListFragment extends BaseListFragment {
             addPostIntent.putExtra(Constants.EXTRA_POST_COMMENT, postComment);
         }
 
-        activity.startActivityForResult(addPostIntent, Constants.REQUEST_CODE_ADD_POST_ACTIVITY);
+        // The result (created post) must return to the fragment that shows the
+        // thread. Launching through the activity drops the result, so start
+        // from the currently visible fragment whenever possible.
+        android.support.v4.app.Fragment currentFragment = getCurrentFragment(activity);
+        if (currentFragment != null) {
+            currentFragment.startActivityForResult(addPostIntent, Constants.REQUEST_CODE_ADD_POST_ACTIVITY);
+        } else {
+            activity.startActivityForResult(addPostIntent, Constants.REQUEST_CODE_ADD_POST_ACTIVITY);
+        }
+    }
+
+    private static android.support.v4.app.Fragment getCurrentFragment(Activity activity) {
+        if (!(activity instanceof android.support.v4.app.FragmentActivity)) {
+            return null;
+        }
+        List<android.support.v4.app.Fragment> fragments =
+                ((android.support.v4.app.FragmentActivity) activity).getSupportFragmentManager().getFragments();
+        if (fragments == null) {
+            return null;
+        }
+        for (android.support.v4.app.Fragment fragment : fragments) {
+            if (fragment != null && fragment.isResumed() && fragment.isVisible()
+                    && (fragment instanceof PostsListFragment || fragment instanceof ThreadsListFragment)) {
+                return fragment;
+            }
+        }
+        return null;
+    }
+
+    public static void openSentPost(MainRouter router, Intent result) {
+        Bundle arguments = new Bundle();
+        arguments.putString(Constants.EXTRA_WEBSITE, Websites.getDefault().name());
+        arguments.putString(Constants.EXTRA_BOARD_NAME, result.getStringExtra(AddPostActivity.EXTRA_SENT_BOARD));
+        arguments.putString(Constants.EXTRA_THREAD_NUMBER, result.getStringExtra(Constants.EXTRA_REDIRECTED_THREAD_NUMBER));
+        arguments.putString(Constants.EXTRA_POST_NUMBER, result.getStringExtra(AddPostActivity.EXTRA_SENT_POST_NUMBER));
+        arguments.putString(AddPostActivity.EXTRA_SENT_POST_NUMBER, result.getStringExtra(AddPostActivity.EXTRA_SENT_POST_NUMBER));
+        PostsListFragment fragment = new PostsListFragment();
+        fragment.setArguments(arguments);
+        router.pushFragment(fragment);
     }
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent intent) {
-        if (resultCode == RESULT_OK) {
+        if (resultCode == RESULT_OK && intent != null) {
             switch (requestCode) {
                 case Constants.REQUEST_CODE_ADD_POST_ACTIVITY:
-                    refreshPosts(true);
+                    String sentPostNumber = intent.getStringExtra(AddPostActivity.EXTRA_SENT_POST_NUMBER);
+                    String sentBoard = intent.getStringExtra(AddPostActivity.EXTRA_SENT_BOARD);
+                    String sentThread = intent.getStringExtra(Constants.EXTRA_REDIRECTED_THREAD_NUMBER);
+                    if (!mBoardName.equals(sentBoard) || !mThreadNumber.equals(sentThread)) {
+                        openSentPost(mRouter, intent);
+                    } else {
+                        reloadThreadAfterPosting(sentPostNumber);
+                    }
                     break;
             }
         }
+    }
+
+    /**
+     * The composer reported a published post: reload the whole thread bypassing
+     * the cache (no If-Modified-Since, starting from the first post) instead of
+     * fetching only the tail, then scroll to the new post.
+     */
+    private void reloadThreadAfterPosting(String sentPostNumber) {
+        mPendingSentPostNumber = sentPostNumber;
+
+        if (mCurrentDownloadTask != null) {
+            mCurrentDownloadTask.cancel(true);
+        }
+
+        mCurrentDownloadTask = new DownloadPostsTask(mPostsReaderListener, mBoardName, mThreadNumber, false, mJsonReader, false);
+        mCurrentDownloadTask.execute();
+    }
+
+    private void scrollToPendingSentPost() {
+        if (mPendingSentPostNumber == null) {
+            return;
+        }
+        String postNumber = mPendingSentPostNumber;
+        mPendingSentPostNumber = null;
+
+        if (containsPost(postNumber)) {
+            mAdapter.scrollToPost(postNumber);
+        } else {
+            // The post was accepted by the server but the refreshed thread does
+            // not contain it: this is a refresh problem, not a posting failure.
+            showToastIfVisible(getString(R.string.notification_sent_post_not_in_thread, postNumber));
+        }
+    }
+
+    private boolean containsPost(String postNumber) {
+        if (StringUtils.isEmpty(postNumber) || mAdapter == null) {
+            return false;
+        }
+        PostModel[] posts = mAdapter.getOriginalPosts();
+        if (posts == null) {
+            return false;
+        }
+        for (PostModel post : posts) {
+            if (post != null && postNumber.equals(post.getNumber())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void refreshPosts(boolean checkModified) {
@@ -496,6 +596,7 @@ public class PostsListFragment extends BaseListFragment {
             if (posts != null && posts.length > 0) {
                 setAdapterData(posts);
                 mSerializationService.serializePosts(mWebsite.name(), mBoardName, mThreadNumber, mAdapter.getOriginalPosts());
+                scrollToPendingSentPost();
             } else {
                 mAdapter.clear();
                 showError(getString(R.string.error_list_empty));
@@ -506,6 +607,12 @@ public class PostsListFragment extends BaseListFragment {
         public void showError(String error) {
             if (error != null && error.startsWith("503")) {
                 error = "Error 503: it seems like Cloudflare check, open any board first.";
+            }
+            if (mPendingSentPostNumber != null) {
+                // The post itself was accepted; only the refresh failed.
+                String sentPostInfo = getString(R.string.error_refresh_after_posting, mPendingSentPostNumber);
+                mPendingSentPostNumber = null;
+                error = error != null ? error + "\n" + sentPostInfo : sentPostInfo;
             }
             switchToErrorView(error);
         }

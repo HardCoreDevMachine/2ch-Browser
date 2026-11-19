@@ -77,7 +77,8 @@ public class MakabaUrlBuilder implements IUrlBuilder {
     }
 
     public String getPostingUrlApi() {
-        return this.createRootUri("user/posting").toString();
+        return this.createRootUri("user/posting").buildUpon()
+                .appendQueryParameter("nc", "1").build().toString();
     }
 
     public String getPostingUrlHtml() {

@@ -1,5 +1,8 @@
 package ua.in.quireg.chan.ui.activities;
 
+import android.content.Intent;
+import ua.in.quireg.chan.common.Constants;
+import ua.in.quireg.chan.ui.fragments.PostsListFragment;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -99,6 +102,15 @@ public class MainActivity extends MvpAppCompatActivity {
     protected void onPause() {
         mNavigatorHolder.removeNavigator();
         super.onPause();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        // Popup replies without a fragment owner still retain their publication result.
+        if (requestCode == Constants.REQUEST_CODE_ADD_POST_ACTIVITY && resultCode == RESULT_OK && data != null) {
+            PostsListFragment.openSentPost(mMainRouter, data);
+        }
     }
 
     @Override

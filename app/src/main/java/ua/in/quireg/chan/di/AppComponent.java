@@ -14,7 +14,6 @@ import ua.in.quireg.chan.mvp.routing.MainNavigator;
 import ua.in.quireg.chan.repositories.BoardsRepository;
 import ua.in.quireg.chan.repositories.ThreadsRepository;
 import ua.in.quireg.chan.services.CacheDirectoryManager;
-import ua.in.quireg.chan.services.PostSender;
 import ua.in.quireg.chan.services.presentation.OpenTabsManager;
 import ua.in.quireg.chan.ui.activities.MainActivity;
 import ua.in.quireg.chan.ui.adapters.HistoryAdapter;
@@ -51,7 +50,6 @@ public interface AppComponent {
     void inject(ThreadsListFragment threadsListFragment);
     void inject(MakabaUrlBuilder makabaUrlBuilder);
     void inject(MakabaApiReader makabaApiReader);
-    void inject(PostSender postSender);
     void inject(BaseListFragment baseListFragment);
     void inject(ThreadsListAdapter threadsListAdapter);
 
